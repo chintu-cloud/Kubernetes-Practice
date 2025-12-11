@@ -147,6 +147,8 @@
 
 chmod +x kubectl
 mv kubectl /usr/local/bin/kubectl
+
+
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
 100   138  100   138    0     0   3345      0 --:--:-- --:--:-- --:--:--  3365
