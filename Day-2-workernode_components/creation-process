@@ -159,8 +159,8 @@ mv kubectl /usr/local/bin/kubectl
 ------- AWS Configure (root access key) ---------
 
 [root@ip-172-31-66-201 ~]# aws configure
-AWS Access Key ID [None]: AKIARI4676H5YE4YYREA
-AWS Secret Access Key [None]: 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
+AWS Access Key ID [None]: 
+AWS Secret Access Key [None]:
 Default region name [None]: us-east-1
 Default output format [None]: json
 
