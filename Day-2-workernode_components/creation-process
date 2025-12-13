@@ -1,3 +1,189 @@
+Here’s a complete **README.md** file for your workflow. I’ve ensured every step is included, with no missing lines, and formatted cleanly in Markdown for clarity:
+
+```markdown
+# Kubernetes on AWS EC2 with EKS
+
+This guide explains how to connect to an EC2 instance, install Kubernetes tools, configure AWS CLI, update kubeconfig for EKS, and run workloads using Pods, ReplicaSets, and Deployments.
+
+---
+
+## 🚀 Connect to EC2
+
+```bash
+[ec2-user@ip-172-31-66-201 ~]$ sudo su -
+[root@ip-172-31-66-201 ~]#
+```
+
+Amazon Linux 2023  
+👉 https://aws.amazon.com/linux/amazon-linux-2023
+
+---
+
+## 📦 Install Kubernetes (kubectl)
+
+```bash
+[root@ip-172-31-66-201 ~]# curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+[root@ip-172-31-66-201 ~]# chmod +x kubectl
+[root@ip-172-31-66-201 ~]# mv kubectl /usr/local/bin/kubectl
+```
+
+---
+
+## 🔑 AWS Configure (Root Access Key)
+
+```bash
+[root@ip-172-31-66-201 ~]# aws configure
+AWS Access Key ID [None]:
+AWS Secret Access Key [None]:
+Default region name [None]: us-east-1
+Default output format [None]: json
+```
+
+---
+
+## ⚙️ Update kubeconfig
+
+```bash
+[root@ip-172-31-66-201 ~]# aws eks update-kubeconfig --region us-east-1 --name cloud
+Added new context arn:aws:eks:us-east-1:087843402235:cluster/cloud to /root/.kube/config
+[root@ip-172-31-66-201 ~]# kubectl get nodes
+```
+
+Output:
+
+```
+NAME                            STATUS   ROLES    AGE    VERSION
+ip-172-31-15-118.ec2.internal   Ready    <none>   6m9s   v1.34.2-eks-ecaa3a6
+ip-172-31-21-200.ec2.internal   Ready    <none>   6m9s   v1.34.2-eks-ecaa3a6
+```
+
+---
+
+## 🟢 Using Pod
+
+```bash
+[root@ip-172-31-66-201 ~]# vi pod.yml
+[root@ip-172-31-66-201 ~]# kubectl apply -f pod.yml
+pod/myapp created
+[root@ip-172-31-66-201 ~]# kubectl get pods
+```
+
+Output:
+
+```
+NAME    READY   STATUS    RESTARTS   AGE
+myapp   1/1     Running   0          27s
+```
+
+Delete pod:
+
+```bash
+[root@ip-172-31-66-201 ~]# kubectl delete pod myapp
+pod "myapp" deleted from default namespace
+```
+
+---
+
+## 🔁 Using ReplicaSet
+
+```bash
+[root@ip-172-31-66-201 ~]# vi rs.yml
+[root@ip-172-31-66-201 ~]# kubectl apply -f rs.yml
+replicaset.apps/web-rs created
+[root@ip-172-31-66-201 ~]# kubectl get pods
+```
+
+Output:
+
+```
+NAME           READY   STATUS    RESTARTS   AGE
+web-rs-7zclg   1/1     Running   0          24s
+web-rs-kmhrl   1/1     Running   0          24s
+web-rs-mh5jh   1/1     Running   0          24s
+```
+
+Delete one pod:
+
+```bash
+[root@ip-172-31-66-201 ~]# kubectl delete pod web-rs-7zclg
+pod "web-rs-7zclg" deleted from default namespace
+```
+
+ReplicaSet auto-heals:
+
+```
+NAME           READY   STATUS    RESTARTS   AGE
+web-rs-bcsnt   1/1     Running   0          8s
+web-rs-kmhrl   1/1     Running   0          113s
+web-rs-mh5jh   1/1     Running   0          113s
+```
+
+Delete ReplicaSet:
+
+```bash
+[root@ip-172-31-66-201 ~]# kubectl delete -f rs.yml
+replicaset.apps "web-rs" deleted from default namespace
+[root@ip-172-31-66-201 ~]# kubectl get pods
+No resources found in default namespace.
+```
+
+---
+
+## 📂 Using Deployment
+
+```bash
+[root@ip-172-31-66-201 ~]# vi deploy.yml
+[root@ip-172-31-66-201 ~]# kubectl apply -f deploy.yml
+deployment.apps/nginx-deployment created
+[root@ip-172-31-66-201 ~]# kubectl get pods
+```
+
+Output:
+
+```
+NAME                                READY   STATUS    RESTARTS   AGE
+nginx-deployment-56bb7c45fc-grbp4   1/1     Running   0          15s
+nginx-deployment-56bb7c45fc-plmdw   1/1     Running   0          15s
+nginx-deployment-56bb7c45fc-wwwzd   1/1     Running   0          15s
+```
+
+Delete one pod:
+
+```bash
+[root@ip-172-31-66-201 ~]# kubectl delete pod nginx-deployment-56bb7c45fc-grbp4
+pod "nginx-deployment-56bb7c45fc-grbp4" deleted from default namespace
+```
+
+Deployment auto-heals:
+
+```
+NAME                                READY   STATUS    RESTARTS   AGE
+nginx-deployment-56bb7c45fc-nmb92   1/1     Running   0          7s
+nginx-deployment-56bb7c45fc-plmdw   1/1     Running   0          47s
+nginx-deployment-56bb7c45fc-wwwzd   1/1     Running   0          47s
+```
+
+Delete Deployment:
+
+```bash
+[root@ip-172-31-66-201 ~]# kubectl delete -f deploy.yml
+deployment.apps "nginx-deployment" deleted from default namespace
+[root@ip-172-31-66-201 ~]# kubectl get pods
+No resources found in default namespace.
+```
+
+---
+
+## ✅ Summary
+
+- **Pod** → Runs a single container.  
+- **ReplicaSet** → Ensures a specified number of pod replicas are running.  
+- **Deployment** → Manages ReplicaSets and provides rolling updates & rollback.  
+
+This workflow demonstrates Kubernetes basics on AWS EKS using EC2 nodes.
+```
+
+Would you like me to also add **sample YAML files** (`pod.yml`, `rs.yml`, `deploy.yml`) inside the README so it’s fully self-contained?
 
 
 
