@@ -1,167 +1,169 @@
-[ec2-user@ip-172-31-75-46 ~]$ sudo su -
-Last login: Sat Dec 13 11:36:46 UTC 2025 on pts/1
-[root@ip-172-31-75-46 ~]# kubectl get nodes -o wide
-NAME                           STATUS   ROLES    AGE   VERSION               INTERNAL-IP    EXTERNAL-IP     OS-IMAGE                       KERNEL-VERSION                   CONTAINER-RUNTIME
-ip-172-31-1-216.ec2.internal   Ready    <none>   32m   v1.34.2-eks-ecaa3a6   172.31.1.216   3.234.255.221   Amazon Linux 2023.9.20251208   6.12.58-82.121.amzn2023.x86_64   containerd://2.1.5
-ip-172-31-90-1.ec2.internal    Ready    <none>   32m   v1.34.2-eks-ecaa3a6   172.31.90.1    44.201.82.128   Amazon Linux 2023.9.20251208   6.12.58-82.121.amzn2023.x86_64   containerd://2.1.5
-[root@ip-172-31-75-46 ~]# kubectl get pods
+
+# Deploy Hotstar App on AWS EKS
+
+This guide walks through deploying the **Hotstar app** on an Amazon EKS cluster using `kubectl`.
+
+---
+
+## 🚀 Steps
+
+
+### 2. Verify cluster nodes
+```bash
+kubectl get nodes -o wide
+```
+
+Output:
+```
+NAME                           STATUS   ROLES    AGE   VERSION
+ip-172-31-1-216.ec2.internal   Ready    <none>   32m   v1.34.2-eks-ecaa3a6
+ip-172-31-90-1.ec2.internal    Ready    <none>   32m   v1.34.2-eks-ecaa3a6
+```
+
+---
+
+### 3. Check running pods
+```bash
+kubectl get pods
+```
+
+Output:
+```
 NAME                                 READY   STATUS    RESTARTS   AGE
 regapp-deployment-67bbc86888-hbjmz   1/1     Running   0          9m22s
-[root@ip-172-31-75-46 ~]# kubectl get svc
+```
+
+---
+
+### 4. Check services
+```bash
+kubectl get svc
+```
+
+Output:
+```
 NAME             TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)          AGE
 kubernetes       ClusterIP   10.100.0.1      <none>        443/TCP          36m
 regapp-service   NodePort    10.100.168.77   <none>        3000:31409/TCP   24m
-[root@ip-172-31-75-46 ~]# kubectl delete -f regapp-service
-error: the path "regapp-service" does not exist
-[root@ip-172-31-75-46 ~]# kubectl get svc
-NAME             TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)          AGE
-kubernetes       ClusterIP   10.100.0.1      <none>        443/TCP          37m
-regapp-service   NodePort    10.100.168.77   <none>        3000:31409/TCP   25m
-[root@ip-172-31-75-46 ~]# kubectl delete -f deploy.yml
-deployment.apps "regapp-deployment" deleted from default namespace
-service "regapp-service" deleted from default namespace
-[root@ip-172-31-75-46 ~]# kubectl get svc
-NAME         TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
-kubernetes   ClusterIP   10.100.0.1   <none>        443/TCP   37m
-[root@ip-172-31-75-46 ~]# vi dp.yml
-[root@ip-172-31-75-46 ~]# kubectl apply -f dp.yml
+```
+
+---
+
+### 6. Update deployment file (`dp.yml`)
+Edit the file:
+```yaml
+image: chandan87/hotstar
+type: NodePort
+```
+
+Save and apply:
+```bash
+kubectl apply -f dp.yml
+```
+
+Output:
+```
 deployment.apps/regapp-deployment created
 service/regapp-service created
-[root@ip-172-31-75-46 ~]# kubectl get pods
+```
+
+---
+
+### 7. Verify pods and services
+```bash
+kubectl get pods
+kubectl get svc
+```
+
+Output:
+```
 NAME                                 READY   STATUS    RESTARTS   AGE
 regapp-deployment-654b747c5f-zvv2q   1/1     Running   0          10s
-[root@ip-172-31-75-46 ~]# kubectl get noeds
-error: the server doesn't have a resource type "noeds"
-[root@ip-172-31-75-46 ~]# kubectl get nodes
-NAME                           STATUS   ROLES    AGE   VERSION
-ip-172-31-1-216.ec2.internal   Ready    <none>   36m   v1.34.2-eks-ecaa3a6
-ip-172-31-90-1.ec2.internal    Ready    <none>   36m   v1.34.2-eks-ecaa3a6
-[root@ip-172-31-75-46 ~]# kubectl svc
-error: unknown command "svc" for "kubectl"
+```
 
-Did you mean this?
-        set
-[root@ip-172-31-75-46 ~]# kubectl get svc
+```
 NAME             TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)          AGE
-kubernetes       ClusterIP   10.100.0.1       <none>        443/TCP          40m
 regapp-service   NodePort    10.100.186.142   <none>        3000:31010/TCP   74s
-[root@ip-172-31-75-46 ~]# kubectl describe svc regapp-service 
-Name:                     regapp-service
-Namespace:                default
-Labels:                   app=regapp
-Annotations:              <none>
-Selector:                 app=regapp
-Type:                     NodePort
-IP Family Policy:         SingleStack
-IP Families:              IPv4
-IP:                       10.100.186.142
-IPs:                      10.100.186.142
-Port:                     <unset>  3000/TCP
-TargetPort:               3000/TCP
-NodePort:                 <unset>  31010/TCP
-Endpoints:                172.31.10.160:3000
-Session Affinity:         None
-External Traffic Policy:  Cluster
-Internal Traffic Policy:  Cluster
-Events:                   <none>
-[root@ip-172-31-75-46 ~]# kubectl get nodes -o wide
-NAME                           STATUS   ROLES    AGE   VERSION               INTERNAL-IP    EXTERNAL-IP     OS-IMAGE                       KERNEL-VERSION                   CONTAINER-RUNTIME
-ip-172-31-1-216.ec2.internal   Ready    <none>   38m   v1.34.2-eks-ecaa3a6   172.31.1.216   3.234.255.221   Amazon Linux 2023.9.20251208   6.12.58-82.121.amzn2023.x86_64   containerd://2.1.5
-ip-172-31-90-1.ec2.internal    Ready    <none>   38m   v1.34.2-eks-ecaa3a6   172.31.90.1    44.201.82.128   Amazon Linux 2023.9.20251208   6.12.58-82.121.amzn2023.x86_64   containerd://2.1.5
-[root@ip-172-31-75-46 ~]# kubectl get svc
-NAME             TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)          AGE
-kubernetes       ClusterIP   10.100.0.1       <none>        443/TCP          47m
-regapp-service   NodePort    10.100.186.142   <none>        3000:31010/TCP   8m5s
-[root@ip-172-31-75-46 ~]# kubectl describe svc regapp-service 
-Name:                     regapp-service
-Namespace:                default
-Labels:                   app=regapp
-Annotations:              <none>
-Selector:                 app=regapp
-Type:                     NodePort
-IP Family Policy:         SingleStack
-IP Families:              IPv4
-IP:                       10.100.186.142
-IPs:                      10.100.186.142
-Port:                     <unset>  3000/TCP
-TargetPort:               3000/TCP
-NodePort:                 <unset>  31010/TCP
-Endpoints:                172.31.10.160:3000
-Session Affinity:         None
-External Traffic Policy:  Cluster
-Internal Traffic Policy:  Cluster
-Events:                   <none>
+```
 
---> then goto node server check app is running or not
---> connect & run server this command  curl http://<node publicip>:<port no>
+---
 
+### 8. Test NodePort server inside
+Run curl with node public IP and NodePort:
+```bash
+curl http://3.234.255.221:31010
+```
 
-[root@ip-172-31-1-216 ~]# curl http://3.234.255.221:31010
+Output:
+```html
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-   
     <title>Hotstar</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Crimson+Text&family=Croissant+One&family=Gabarito&family=Josefin+Sans&family=Sedgwick+Ave+Display&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha512-z3gLpd7yknf1YoNbCzqRKc4qyor8gaKU1qmn+CShxbuBusANI9QpRohGBreCFkKxLhei6S9CQXFEbbKuqLg0DA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <script defer src="/static/js/bundle.js"></script></head>
+    ...
+  </head>
   <body>
     <div id="root"></div>
-    
   </body>
 </html>
+```
 
---------------------------------------------------------------------
+Access in browser:
+```
+http://<node-publicip>:<port>
+http://3.234.255.221:31010/
+```
 
-[root@ip-172-31-75-46 ~]# vi dp.yml
-[root@ip-172-31-75-46 ~]# kubectl apply -f dp.yml
+---
+
+### 9. Change service type to LoadBalancer
+Edit `dp.yml`:
+```yaml
+image: chandan87/hotstar
+type: LoadBalancer
+```
+
+Apply changes:
+```bash
+kubectl apply -f dp.yml
+```
+
+Output:
+```
 deployment.apps/regapp-deployment unchanged
 service/regapp-service configured
-[root@ip-172-31-75-46 ~]# kubectl describe svc regapp-service 
-Name:                     regapp-service
-Namespace:                default
-Labels:                   app=regapp
-Annotations:              <none>
-Selector:                 app=regapp
+```
+
+---
+
+### 10. Verify LoadBalancer service
+```bash
+kubectl describe svc regapp-service
+```
+
+Output:
+```
 Type:                     LoadBalancer
-IP Family Policy:         SingleStack
-IP Families:              IPv4
-IP:                       10.100.186.142
-IPs:                      10.100.186.142
 LoadBalancer Ingress:     a302bd806ca504062b0c8a7d23bcd8ba-1269352010.us-east-1.elb.amazonaws.com
-Port:                     <unset>  3000/TCP
-TargetPort:               3000/TCP
-NodePort:                 <unset>  31010/TCP
+Port:                     3000/TCP
 Endpoints:                172.31.10.160:3000
-Session Affinity:         None
-External Traffic Policy:  Cluster
-Internal Traffic Policy:  Cluster
-Events:
-  Type    Reason                Age   From                Message
-  ----    ------                ----  ----                -------
-  Normal  EnsuringLoadBalancer  14s   service-controller  Ensuring load balancer
-  Normal  EnsuredLoadBalancer   11s   service-controller  Ensured load balancer
-[root@ip-172-31-75-46 ~]# kubectl get nodes -o wide
-NAME                           STATUS   ROLES    AGE   VERSION               INTERNAL-IP    EXTERNAL-IP     OS-IMAGE                       KERNEL-VERSION                   CONTAINER-RUNTIME
-ip-172-31-1-216.ec2.internal   Ready    <none>   48m   v1.34.2-eks-ecaa3a6   172.31.1.216   3.234.255.221   Amazon Linux 2023.9.20251208   6.12.58-82.121.amzn2023.x86_64   containerd://2.1.5
-ip-172-31-90-1.ec2.internal    Ready    <none>   48m   v1.34.2-eks-ecaa3a6   172.31.90.1    44.201.82.128   Amazon Linux 2023.9.20251208   6.12.58-82.121.amzn2023.x86_64   containerd://2.1.5
-[root@ip-172-31-75-46 ~]# kubectl get pods -o wide
-NAME                                 READY   STATUS    RESTARTS   AGE   IP              NODE                           NOMINATED NODE   READINESS GATES
-regapp-deployment-654b747c5f-zvv2q   1/1     Running   0          13m   172.31.10.160   ip-172-31-1-216.ec2.internal   <none>           <none>
-[root@ip-172-31-75-46 ~]# 
+```
 
+---
 
+## 🌐 Final Access URLs
 
-http://<node-publicip>:<port no>
-http://3.234.255.221:31010/
+- **NodePort URL:**
+  ```
+  http://3.234.255.221:31010/
+  ```
 
+- **LoadBalancer URL:**
+  ```
+  http://a302bd806ca504062b0c8a7d23bcd8ba-1269352010.us-east-1.elb.amazonaws.com:3000/
+  ```
 
+---
 
-http://<loadbalancer ip>:<port no>
-http://a302bd806ca504062b0c8a7d23bcd8ba-1269352010.us-east-1.elb.amazonaws.com:3000/
-
+✅ Your Hotstar app is now successfully deployed on AWS EKS and accessible via both **NodePort** and **LoadBalancer**.
 
