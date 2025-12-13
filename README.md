@@ -127,8 +127,4 @@ Go to **Cluster → EKS → Compute → Node groups → Add**
 - SG: **default**
 
 ---
-```
 
-This README.md preserves every line of your instructions and diagram exactly, with proper Markdown formatting for clarity.  
-
-Would you like me to also add **kubectl configuration steps** (like updating kubeconfig and testing with `kubectl get nodes`) so the README becomes fully usable for cluster access?
