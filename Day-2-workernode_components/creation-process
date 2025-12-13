@@ -1,11 +1,4 @@
-Here’s a complete **README.md** file for your workflow. I’ve ensured every step is included, with no missing lines, and formatted cleanly in Markdown for clarity:
 
-```markdown
-# Kubernetes on AWS EC2 with EKS
-
-This guide explains how to connect to an EC2 instance, install Kubernetes tools, configure AWS CLI, update kubeconfig for EKS, and run workloads using Pods, ReplicaSets, and Deployments.
-
----
 
 ## 🚀 Connect to EC2
 
@@ -21,11 +14,10 @@ Amazon Linux 2023
 
 ## 📦 Install Kubernetes (kubectl)
 
-```bash
+
 [root@ip-172-31-66-201 ~]# curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-[root@ip-172-31-66-201 ~]# chmod +x kubectl
-[root@ip-172-31-66-201 ~]# mv kubectl /usr/local/bin/kubectl
-```
+ chmod +x kubectl
+ mv kubectl /usr/local/bin/kubectl
 
 ---
 
@@ -180,150 +172,5 @@ No resources found in default namespace.
 - **ReplicaSet** → Ensures a specified number of pod replicas are running.  
 - **Deployment** → Manages ReplicaSets and provides rolling updates & rollback.  
 
-This workflow demonstrates Kubernetes basics on AWS EKS using EC2 nodes.
-```
-
-Would you like me to also add **sample YAML files** (`pod.yml`, `rs.yml`, `deploy.yml`) inside the README so it’s fully self-contained?
-
-
-
-
-
-  ----- HOW IT WORKS ? -----
-
------- connect EC2 -------
-          
-
-
-
-   ,     #_
-   ~\_  ####_        Amazon Linux 2023
-  ~~  \_#####\
-  ~~     \###|
-  ~~       \#/ ___   https://aws.amazon.com/linux/amazon-linux-2023
-   ~~       V~' '->
-    ~~~         /
-      ~~._.   _/
-         _/ _/
-       _/m/'
-[ec2-user@ip-172-31-66-201 ~]$ sudo su -
-[root@ip-172-31-66-201 ~]#
-
-
-
-------- Install Kubernetes -------
-
-[root@ip-172-31-66-201 ~]# curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-
-chmod +x kubectl
-mv kubectl /usr/local/bin/kubectl
-
-
-  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-                                 Dload  Upload   Total   Spent    Left  Speed
-100   138  100   138    0     0   3345      0 --:--:-- --:--:-- --:--:--  3365
-100 57.7M  100 57.7M    0     0   341M      0 --:--:-- --:--:-- --:--:--  574M
-
-
-
-------- AWS Configure (root access key) ---------
-
-[root@ip-172-31-66-201 ~]# aws configure
-AWS Access Key ID [None]: 
-AWS Secret Access Key [None]:
-Default region name [None]: us-east-1
-Default output format [None]: json
-
-
-
--------- update kubeconfigure ---------
-
-[root@ip-172-31-66-201 ~]# aws eks update-kubeconfig --region us-east-1 --name cloud
-Added new context arn:aws:eks:us-east-1:087843402235:cluster/cloud to /root/.kube/config
-[root@ip-172-31-66-201 ~]# kubectl get nodes
-NAME                            STATUS   ROLES    AGE    VERSION
-ip-172-31-15-118.ec2.internal   Ready    <none>   6m9s   v1.34.2-eks-ecaa3a6
-ip-172-31-21-200.ec2.internal   Ready    <none>   6m9s   v1.34.2-eks-ecaa3a6
-
-
-
-
------- Using POD --------
-
-
-[root@ip-172-31-66-201 ~]# vi pod.yml
-[root@ip-172-31-66-201 ~]# kubectl apply -f pod.yml
-pod/myapp created
-[root@ip-172-31-66-201 ~]# kubectl get pods
-NAME    READY   STATUS    RESTARTS   AGE
-myapp   1/1     Running   0          27s
-[root@ip-172-31-66-201 ~]# kubectl get nodes -o wide
-NAME                            STATUS   ROLES    AGE     VERSION               INTERNAL-IP     EXTERNAL-IP      OS-IMAGE                       KERNEL-VERSION                   CONTAINER-RUNTIME
-ip-172-31-15-118.ec2.internal   Ready    <none>   8m55s   v1.34.2-eks-ecaa3a6   172.31.15.118   44.198.167.106   Amazon Linux 2023.9.20251117   6.12.55-74.119.amzn2023.x86_64   containerd://2.1.4
-ip-172-31-21-200.ec2.internal   Ready    <none>   8m55s   v1.34.2-eks-ecaa3a6   172.31.21.200   34.229.15.254    Amazon Linux 2023.9.20251117   6.12.55-74.119.amzn2023.x86_64   containerd://2.1.4
-[root@ip-172-31-66-201 ~]# kubectl delete pod myapp
-pod "myapp" deleted from default namespace
-[root@ip-172-31-66-201 ~]# kubectl get nodes
-NAME                            STATUS   ROLES    AGE   VERSION
-ip-172-31-15-118.ec2.internal   Ready    <none>   10m   v1.34.2-eks-ecaa3a6
-ip-172-31-21-200.ec2.internal   Ready    <none>   10m   v1.34.2-eks-ecaa3a6
-
-
-
-
------ using Replicaset -------
-
-
-[root@ip-172-31-66-201 ~]# vi rs.yml
-[root@ip-172-31-66-201 ~]# kubectl apply -f rs.yml
-replicaset.apps/web-rs created
-[root@ip-172-31-66-201 ~]# kubectl get pods
-NAME           READY   STATUS    RESTARTS   AGE
-web-rs-7zclg   1/1     Running   0          24s
-web-rs-kmhrl   1/1     Running   0          24s
-web-rs-mh5jh   1/1     Running   0          24s
-[root@ip-172-31-66-201 ~]# kubectl get nodes -o wide
-NAME                            STATUS   ROLES    AGE   VERSION               INTERNAL-IP     EXTERNAL-IP      OS-IMAGE                       KERNEL-VERSION                   CONTAINER-RUNTIME
-ip-172-31-15-118.ec2.internal   Ready    <none>   12m   v1.34.2-eks-ecaa3a6   172.31.15.118   44.198.167.106   Amazon Linux 2023.9.20251117   6.12.55-74.119.amzn2023.x86_64   containerd://2.1.4
-ip-172-31-21-200.ec2.internal   Ready    <none>   12m   v1.34.2-eks-ecaa3a6   172.31.21.200   34.229.15.254    Amazon Linux 2023.9.20251117   6.12.55-74.119.amzn2023.x86_64   containerd://2.1.4
-[root@ip-172-31-66-201 ~]# kubectl delete pod web-rs-7zclg
-pod "web-rs-7zclg" deleted from default namespace
-[root@ip-172-31-66-201 ~]# kubectl get pods
-NAME           READY   STATUS    RESTARTS   AGE
-web-rs-bcsnt   1/1     Running   0          8s
-web-rs-kmhrl   1/1     Running   0          113s
-web-rs-mh5jh   1/1     Running   0          113s
-[root@ip-172-31-66-201 ~]# kubectl delete -f rs.yml
-replicaset.apps "web-rs" deleted from default namespace
-[root@ip-172-31-66-201 ~]# kubectl get pods
-No resources found in default namespace.
-
-
-
-
-
------- using deployment -------
-
-
-[root@ip-172-31-66-201 ~]# vi deploy.yml
-[root@ip-172-31-66-201 ~]# kubectl apply -f deploy.yml
-deployment.apps/nginx-deployment created
-[root@ip-172-31-66-201 ~]# kubectl get pods
-NAME                                READY   STATUS    RESTARTS   AGE
-nginx-deployment-56bb7c45fc-grbp4   1/1     Running   0          15s
-nginx-deployment-56bb7c45fc-plmdw   1/1     Running   0          15s
-nginx-deployment-56bb7c45fc-wwwzd   1/1     Running   0          15s
-[root@ip-172-31-66-201 ~]# kubectl delete pod nginx-deployment-56bb7c45fc-grbp4 
-pod "nginx-deployment-56bb7c45fc-grbp4" deleted from default namespace
-[root@ip-172-31-66-201 ~]# kubectl get pods
-NAME                                READY   STATUS    RESTARTS   AGE
-nginx-deployment-56bb7c45fc-nmb92   1/1     Running   0          7s
-nginx-deployment-56bb7c45fc-plmdw   1/1     Running   0          47s
-nginx-deployment-56bb7c45fc-wwwzd   1/1     Running   0          47s
-[root@ip-172-31-66-201 ~]# kubectl delete -f deploy.yml
-deployment.apps "nginx-deployment" deleted from default namespace
-[root@ip-172-31-66-201 ~]# kubectl get pods
-No resources found in default namespace.
-[root@ip-172-31-66-201 ~]# 
 
                 
