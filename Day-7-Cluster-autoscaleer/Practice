@@ -1,0 +1,97 @@
+   ,     #_
+   ~\_  ####_        Amazon Linux 2023
+  ~~  \_#####\
+  ~~     \###|
+  ~~       \#/ ___   https://aws.amazon.com/linux/amazon-linux-2023
+   ~~       V~' '->
+    ~~~         /
+      ~~._.   _/
+         _/ _/
+       _/m/'
+[ec2-user@ip-172-31-68-103 ~]$ sudo su -
+[root@ip-172-31-68-103 ~]# # Download the latest stable release
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+
+# Make it executable
+chmod +x kubectl
+
+# Move it into your PATH
+mv kubectl /usr/local/bin/kubectl
+
+# Verify installation
+kubectl version --client
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100   138  100   138    0     0   3223      0 --:--:-- --:--:-- --:--:--  3285
+100 57.7M  100 57.7M    0     0   313M      0 --:--:-- --:--:-- --:--:--  313M
+Client Version: v1.34.3
+Kustomize Version: v5.7.1
+[root@ip-172-31-68-103 ~]# aws configure
+AWS Access Key ID [None]: 
+AWS Secret Access Key [None]:
+Default region name [None]: us-east-1
+Default output format [None]: json
+
+
+
+
+[root@ip-172-31-68-103 ~]# aws eks update-kubeconfig --region us-east-1 --name cloud
+Added new context arn:aws:eks:us-east-1:087843402235:cluster/cloud to /root/.kube/config
+[root@ip-172-31-68-103 ~]# kubectl get nodes
+NAME                            STATUS   ROLES    AGE     VERSION
+ip-172-31-20-194.ec2.internal   Ready    <none>   7m40s   v1.34.2-eks-ecaa3a6
+ip-172-31-37-180.ec2.internal   Ready    <none>   7m38s   v1.34.2-eks-ecaa3a6
+
+
+[root@ip-172-31-66-158 ~]# vi depoly.yml
+[root@ip-172-31-66-158 ~]# kubectl apply -f deploy.yml
+deployment.apps/nginx-hpa created
+[root@ip-172-31-66-158 ~]# kubectl get pods
+NAME                         READY   STATUS         RESTARTS   AGE
+nginx-hpa-685856c965-jvjff   0/1     ErrImagePull   0          12s
+[root@ip-172-31-66-158 ~]# kubectl get svc
+NAME         TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
+kubernetes   ClusterIP   10.100.0.1   <none>        443/TCP   56m
+[root@ip-172-31-66-158 ~]# kubectl get pods 
+NAME                         READY   STATUS             RESTARTS   AGE
+nginx-hpa-685856c965-jvjff   0/1     ImagePullBackOff   0          79s
+[root@ip-172-31-66-158 ~]# kubectl delete -f deploy.yml
+deployment.apps "nginx-hpa" deleted from default namespace
+[root@ip-172-31-66-158 ~]# kubectl get pods 
+No resources found in default namespace.
+[root@ip-172-31-66-158 ~]# vi dp.yml
+[root@ip-172-31-66-158 ~]# kubectl apply -f dp.yml
+deployment.apps/regapp-deployment created
+service/regapp-service created
+[root@ip-172-31-66-158 ~]# kubectl get pods
+NAME                                 READY   STATUS    RESTARTS   AGE
+regapp-deployment-565db887f6-6vbd9   1/1     Running   0          15s
+[root@ip-172-31-66-158 ~]# kubectl get svc
+NAME             TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)          AGE
+kubernetes       ClusterIP   10.100.0.1      <none>        443/TCP          62m
+regapp-service   NodePort    10.100.81.206   <none>        3000:31782/TCP   27s
+[root@ip-172-31-66-158 ~]# kubectl get pods -o wide
+NAME                                 READY   STATUS    RESTARTS   AGE   IP              NODE                           NOMINATED NODE   READINESS GATES
+regapp-deployment-565db887f6-6vbd9   1/1     Running   0          63s   172.31.31.234   ip-172-31-27-38.ec2.internal   <none>           <none>
+[root@ip-172-31-66-158 ~]# kubectl describe svc regapp-service
+Name:                     regapp-service
+Namespace:                default
+Labels:                   app=regapp
+Annotations:              <none>
+Selector:                 app=regapp
+Type:                     NodePort
+IP Family Policy:         SingleStack
+IP Families:              IPv4
+IP:                       10.100.81.206
+IPs:                      10.100.81.206
+Port:                     <unset>  3000/TCP
+TargetPort:               3000/TCP
+NodePort:                 <unset>  31782/TCP
+Endpoints:                172.31.31.234:3000
+Session Affinity:         None
+External Traffic Policy:  Cluster
+Internal Traffic Policy:  Cluster
+Events:                   <none>
+[root@ip-172-31-66-158 ~]# kubectl get pods -o wide
+NAME                                 READY   STATUS    RESTARTS   AGE     IP              NODE                           NOMINATED NODE   READINESS GATES
+regapp-deployment-565db887f6-6vbd9   1/1     Running   0          5m28s   172.31.31.234   ip-172-31-27-38.ec2.internal   <none>           <none>
