@@ -1,0 +1,177 @@
+   ,     #_
+   ~\_  ####_        Amazon Linux 2023
+  ~~  \_#####\
+  ~~     \###|
+  ~~       \#/ ___   https://aws.amazon.com/linux/amazon-linux-2023
+   ~~       V~' '->
+    ~~~         /
+      ~~._.   _/
+         _/ _/
+       _/m/'
+[ec2-user@ip-172-31-68-103 ~]$ sudo su -
+[root@ip-172-31-68-103 ~]# # Download the latest stable release
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+
+# Make it executable
+chmod +x kubectl
+
+# Move it into your PATH
+mv kubectl /usr/local/bin/kubectl
+
+# Verify installation
+kubectl version --client
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100   138  100   138    0     0   3223      0 --:--:-- --:--:-- --:--:--  3285
+100 57.7M  100 57.7M    0     0   313M      0 --:--:-- --:--:-- --:--:--  313M
+Client Version: v1.34.3
+Kustomize Version: v5.7.1
+[root@ip-172-31-68-103 ~]# aws configure
+AWS Access Key ID [None]: 
+AWS Secret Access Key [None]: 
+Default region name [None]: us-east-1
+Default output format [None]: json
+[root@ip-172-31-68-103 ~]# [root@ip-172-31-66-201 ~]# curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+
+
+
+[root@ip-172-31-68-103 ~]# aws eks update-kubeconfig --region us-east-1 --name cloud
+Added new context arn:aws:eks:us-east-1:087843402235:cluster/cloud to /root/.kube/config
+[root@ip-172-31-68-103 ~]# kubectl get nodes
+NAME                            STATUS   ROLES    AGE     VERSION
+ip-172-31-20-194.ec2.internal   Ready    <none>   7m40s   v1.34.2-eks-ecaa3a6
+ip-172-31-37-180.ec2.internal   Ready    <none>   7m38s   v1.34.2-eks-ecaa3a6
+[root@ip-172-31-68-103 ~]# vi dep-svc.yml
+[root@ip-172-31-68-103 ~]#  kubectl apply -f dep-svc.yml 
+deployment.apps/my-deployment-np created
+service/my-service created
+[root@ip-172-31-68-103 ~]# kubectl get nodes
+NAME                            STATUS   ROLES    AGE   VERSION
+ip-172-31-20-194.ec2.internal   Ready    <none>   10m   v1.34.2-eks-ecaa3a6
+ip-172-31-37-180.ec2.internal   Ready    <none>   10m   v1.34.2-eks-ecaa3a6
+[root@ip-172-31-68-103 ~]# kubectl describe svc my-service
+Name:                     my-service
+Namespace:                default
+Labels:                   <none>
+Annotations:              <none>
+Selector:                 app=my-app-np
+Type:                     NodePort
+IP Family Policy:         SingleStack
+IP Families:              IPv4
+IP:                       10.100.191.28
+IPs:                      10.100.191.28
+Port:                     <unset>  80/TCP
+TargetPort:               80/TCP
+NodePort:                 <unset>  30007/TCP
+Endpoints:                172.31.37.93:80
+Session Affinity:         None
+External Traffic Policy:  Cluster
+Internal Traffic Policy:  Cluster
+Events:                   <none>
+[root@ip-172-31-68-103 ~]# kubectl get nodes
+NAME                            STATUS   ROLES    AGE   VERSION
+ip-172-31-20-194.ec2.internal   Ready    <none>   13m   v1.34.2-eks-ecaa3a6
+ip-172-31-37-180.ec2.internal   Ready    <none>   13m   v1.34.2-eks-ecaa3a6
+[root@ip-172-31-68-103 ~]# kubectl get nodes -o wide
+NAME                            STATUS   ROLES    AGE   VERSION               INTERNAL-IP     EXTERNAL-IP     OS-IMAGE                       KERNEL-VERSION                   CONTAINER-RUNTIME
+ip-172-31-20-194.ec2.internal   Ready    <none>   14m   v1.34.2-eks-ecaa3a6   172.31.20.194   52.55.184.194   Amazon Linux 2023.9.20251208   6.12.58-82.121.amzn2023.x86_64   containerd://2.1.5
+ip-172-31-37-180.ec2.internal   Ready    <none>   14m   v1.34.2-eks-ecaa3a6   172.31.37.180   34.203.193.52   Amazon Linux 2023.9.20251208   6.12.58-82.121.amzn2023.x86_64   containerd://2.1.5
+[root@ip-172-31-68-103 ~]# 
+
+
+[root@ip-172-31-66-158 ~]# vi lb.yml
+[root@ip-172-31-66-158 ~]# kubectl apply -f lb.yml
+deployment.apps/my-deployment-lb created
+service/my-app-lb created
+[root@ip-172-31-66-158 ~]# kubectl get pods
+NAME                                READY   STATUS    RESTARTS   AGE
+my-deployment-lb-57749ddfff-bgqb8   1/1     Running   0          2m9s
+[root@ip-172-31-66-158 ~]# kubectl describe svc my-deployment-lb-57749ddfff-bgqb8  
+Error from server (NotFound): services "my-deployment-lb-57749ddfff-bgqb8" not found
+[root@ip-172-31-66-158 ~]# kubectl get svc
+NAME         TYPE           CLUSTER-IP       EXTERNAL-IP                                                               PORT(S)        AGE
+kubernetes   ClusterIP      10.100.0.1       <none>                                                                    443/TCP        19m
+my-app-lb    LoadBalancer   10.100.154.228   a88edfb1dbc4f43d1af24c274245ba78-1760530535.us-east-1.elb.amazonaws.com   80:32256/TCP   3m52s
+[root@ip-172-31-66-158 ~]# kubectl describe svc my-app-lb 
+Name:                     my-app-lb
+Namespace:                default
+Labels:                   app=my-app-lb
+Annotations:              <none>
+Selector:                 app=my-app-lb
+Type:                     LoadBalancer
+IP Family Policy:         SingleStack
+IP Families:              IPv4
+IP:                       10.100.154.228
+IPs:                      10.100.154.228
+LoadBalancer Ingress:     a88edfb1dbc4f43d1af24c274245ba78-1760530535.us-east-1.elb.amazonaws.com
+Port:                     <unset>  80/TCP
+TargetPort:               80/TCP
+NodePort:                 <unset>  32256/TCP
+Endpoints:                172.31.21.237:80
+Session Affinity:         None
+External Traffic Policy:  Cluster
+Internal Traffic Policy:  Cluster
+Events:
+  Type    Reason                Age    From                Message
+  ----    ------                ----   ----                -------
+  Normal  EnsuringLoadBalancer  6m17s  service-controller  Ensuring load balancer
+  Normal  EnsuredLoadBalancer   6m14s  service-controller  Ensured load balancer
+[root@ip-172-31-66-158 ~]#  kubectl get nodes -o wide
+NAME                           STATUS   ROLES    AGE   VERSION               INTERNAL-IP    EXTERNAL-IP    OS-IMAGE                       KERNEL-VERSION                   CONTAINER-RUNTIME
+ip-172-31-27-38.ec2.internal   Ready    <none>   18m   v1.34.2-eks-ecaa3a6   172.31.27.38   54.80.123.5    Amazon Linux 2023.9.20251208   6.12.58-82.121.amzn2023.x86_64   containerd://2.1.5
+ip-172-31-71-96.ec2.internal   Ready    <none>   18m   v1.34.2-eks-ecaa3a6   172.31.71.96   3.231.230.93   Amazon Linux 2023.9.20251208   6.12.58-82.121.amzn2023.x86_64   containerd://2.1.5
+[root@ip-172-31-66-158 ~]# kubectl get svc
+NAME         TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
+kubernetes   ClusterIP   10.100.0.1   <none>        443/TCP   24m
+[root@ip-172-31-66-158 ~]# kubectl get nodes
+NAME                           STATUS   ROLES    AGE   VERSION
+ip-172-31-27-38.ec2.internal   Ready    <none>   20m   v1.34.2-eks-ecaa3a6
+ip-172-31-71-96.ec2.internal   Ready    <none>   20m   v1.34.2-eks-ecaa3a6
+[root@ip-172-31-66-158 ~]# kubectl get pods
+No resources found in default namespace.
+[root@ip-172-31-66-158 ~]# kubectl delete -f lb.yml
+Error from server (NotFound): error when deleting "lb.yml": deployments.apps "my-deployment-lb" not found
+Error from server (NotFound): error when deleting "lb.yml": services "my-app-lb" not found
+[root@ip-172-31-66-158 ~]# kubectl get nodes
+NAME                           STATUS   ROLES    AGE   VERSION
+ip-172-31-27-38.ec2.internal   Ready    <none>   22m   v1.34.2-eks-ecaa3a6
+ip-172-31-71-96.ec2.internal   Ready    <none>   22m   v1.34.2-eks-ecaa3a6
+[root@ip-172-31-66-158 ~]# vi cluster.yml
+[root@ip-172-31-66-158 ~]# kubectl apply -f cluster.yml
+deployment.apps/my-deployment created
+service/my-app-svc created
+[root@ip-172-31-66-158 ~]# kubectl get pods
+NAME                             READY   STATUS    RESTARTS   AGE
+my-deployment-6b6949b9b4-mzlgz   1/1     Running   0          26s
+my-deployment-6b6949b9b4-n5xz8   1/1     Running   0          26s
+my-deployment-6b6949b9b4-wncmt   1/1     Running   0          26s
+[root@ip-172-31-66-158 ~]# kubectl describe svc my-deployment-6b6949b9b4-mzlgz
+Error from server (NotFound): services "my-deployment-6b6949b9b4-mzlgz" not found
+[root@ip-172-31-66-158 ~]# kubectl get svc
+NAME         TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)   AGE
+kubernetes   ClusterIP   10.100.0.1       <none>        443/TCP   31m
+my-app-svc   ClusterIP   10.100.211.176   <none>        80/TCP    2m47s
+[root@ip-172-31-66-158 ~]# kubectl describe svc my-app-svc 
+Name:                     my-app-svc
+Namespace:                default
+Labels:                   app=my-app
+Annotations:              <none>
+Selector:                 app=my-app
+Type:                     ClusterIP
+IP Family Policy:         SingleStack
+IP Families:              IPv4
+IP:                       10.100.211.176
+IPs:                      10.100.211.176
+Port:                     <unset>  80/TCP
+TargetPort:               80/TCP
+Endpoints:                172.31.21.237:80,172.31.28.86:80,172.31.67.84:80
+Session Affinity:         None
+Internal Traffic Policy:  Cluster
+Events:                   <none>
+[root@ip-172-31-66-158 ~]#  kubectl get nodes -o wide
+NAME                           STATUS   ROLES    AGE   VERSION               INTERNAL-IP    EXTERNAL-IP    OS-IMAGE                       KERNEL-VERSION                   CONTAINER-RUNTIME
+ip-172-31-27-38.ec2.internal   Ready    <none>   31m   v1.34.2-eks-ecaa3a6   172.31.27.38   54.80.123.5    Amazon Linux 2023.9.20251208   6.12.58-82.121.amzn2023.x86_64   containerd://2.1.5
+ip-172-31-71-96.ec2.internal   Ready    <none>   31m   v1.34.2-eks-ecaa3a6   172.31.71.96   3.231.230.93   Amazon Linux 2023.9.20251208   6.12.58-82.121.amzn2023.x86_64   containerd://2.1.5
+[root@ip-172-31-66-158 ~]# kubectl delete -f cluster.yml
+deployment.apps "my-deployment" deleted from default namespace
+service "my-app-svc" deleted from default namespace
