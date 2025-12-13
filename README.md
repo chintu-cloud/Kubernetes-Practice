@@ -1,6 +1,5 @@
-Here’s a complete **README.md** file based on your desired diagram and step-by-step instructions. I’ve formatted it cleanly in Markdown so every line is preserved and nothing is missing:
 
-```markdown
+
 # Amazon EKS Cluster Setup Guide
 
 ### 🧱 Desired Diagram Structure (Textual Layout)
