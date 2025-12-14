@@ -51,6 +51,11 @@ regapp-service   NodePort    10.100.168.77   <none>        3000:31409/TCP   24m
 
 ### 6. Update deployment file (`dp.yml`)
 Edit the file:
+```
+vi. dp.yml
+```
+
+change image name form docker hub:
 ```yaml
 image: chandan87/hotstar
 type: NodePort
@@ -118,6 +123,11 @@ http://3.234.255.221:31010/
 
 ### 9. Change service type to LoadBalancer
 Edit `dp.yml`:
+```
+vi. dp.yml
+```
+
+change nodejs-->Loadbalancer:
 ```yaml
 image: chandan87/hotstar
 type: LoadBalancer
