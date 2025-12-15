@@ -59,9 +59,10 @@ Session Affinity:         None
 Internal Traffic Policy:  Cluster
 Events:                   <none>
 [root@ip-172-31-27-117 ~]#  vi recreate.yaml
-
+-------------------------------------
 vi recreate.yaml inside change image
     nginx:1.25.3  --> nginx:latest
+-------------------------------------
 
 [root@ip-172-31-27-117 ~]# kubectl apply -f recreate.yaml
 deployment.apps/myapp configured
@@ -208,9 +209,10 @@ myapp-75bb575586-ccqv7   1/1     Running   0          117s   172.31.38.182   ip-
 myapp-75bb575586-g4l82   1/1     Running   0          117s   172.31.64.131   ip-172-31-66-33.ec2.internal    <none>           <none>
 myapp-75bb575586-hnq7j   1/1     Running   0          116s   172.31.40.20    ip-172-31-44-160.ec2.internal   <none>           <none>
 [root@ip-172-31-27-117 ~]# vi rolling.yaml
-
+--------------------------------------
 rolling.yaml inside change image name 
       nginx --> httpd 
+-------------------------------------
 
 [root@ip-172-31-27-117 ~]# kubectl apply -f rolling.yaml
 deployment.apps/myapp configured
@@ -284,10 +286,11 @@ blue-myapp-56bbf68745-pjftq    1/1     Running   0          2m49s   172.31.78.14
 green-myapp-768bbfb9c8-h5785   1/1     Running   0          103s    172.31.75.99    ip-172-31-66-33.ec2.internal    <none>           <none>
 green-myapp-768bbfb9c8-jqwpv   1/1     Running   0          103s    172.31.38.182   ip-172-31-44-160.ec2.internal   <none>           <none>
 [root@ip-172-31-27-117 ~]#  vi blue-green-service.yaml
-
+-------------------------------------------------
 blue-green-service.yaml inside we change replica 
 replica inside we can change 
        blue --> green
+-------------------------------------------------
 
 [root@ip-172-31-27-117 ~]# kubectl apply -f  blue-green-service.yaml
 service/myapp configured
@@ -321,12 +324,11 @@ External Traffic Policy:  Cluster
 Internal Traffic Policy:  Cluster
 Events:                   <none>
 [root@ip-172-31-27-117 ~]# vi blue-green-service.yaml
-
-
+--------------------------------------------------
 blue-green-service.yaml inside we change replica 
 replica inside we can change 
        green --> blue
-
+--------------------------------------------------
 
 [root@ip-172-31-27-117 ~]# kubectl apply -f  blue-green-service.yaml
 service/myapp configured
