@@ -212,6 +212,7 @@ myapp-75bb575586-hnq7j   1/1     Running   0          116s   172.31.40.20    ip-
 --------------------------------------
 rolling.yaml inside change image name 
       nginx --> httpd 
+    replica:  4 --> 10
 -------------------------------------
 
 [root@ip-172-31-27-117 ~]# kubectl apply -f rolling.yaml
