@@ -193,6 +193,8 @@ SERVICE
 After that copy the node server public IP with port no 
 eg. - <public IP>:<port no>
         172.91.75.3:32278
+
+result: nginx
 ---
 
 # Rolling Update Deployment Strategy
@@ -322,6 +324,11 @@ SERVICE
 
 🟢 **No downtime because old and new pods run together**
 
+After that copy the node server public IP with port no 
+eg. - <public IP>:<port no>
+        172.91.75.3:32278
+
+result: nginx / httpd 
 ---
 
 # Blue-Green Deployment Strategy
@@ -498,6 +505,10 @@ Service Selector → replica=green
 ```
 
 🔵 **Instant switch and instant rollback**
+
+After that copy the node server public IP with port no 
+eg. - <public IP>:<port no>
+        172.91.75.3:30752
 
 ---
 
