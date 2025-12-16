@@ -1,429 +1,655 @@
 
-[ec2-user@ip-172-31-27-117 ~]$ sudo su -
-[root@ip-172-31-27-117 ~]# # Download the latest K8S package release
+
+# Kubernetes Deployment Strategies – Step by Step on AWS EKS
+
+---
+
+## Step 1: Login to EC2 Instance
+
+```bash
+ssh -i key.pem ec2-user@<EC2-PUBLIC-IP>
+```
+
+Switch to root user:
+
+```
+sudo su -
+```
+
+---
+
+## Step 2: Install kubectl (Latest Stable Version)
+
+# Download kubectl binary:
 curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+
+# Provide execution permission:
 chmod +x kubectl
+
+
+# Move kubectl to system path:
 mv kubectl /usr/local/bin/kubectl
+
+
+# Verify kubectl version:
 kubectl version --client
 
-  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-                                 Dload  Upload   Total   Spent    Left  Speed
-100   138  100   138    0     0   3343      0 --:--:-- --:--:-- --:--:--  3365
-100 57.7M  100 57.7M    0     0   234M      0 --:--:-- --:--:-- --:--:--  234M
-Client Version: v1.34.3
-Kustomize Version: v5.7.1
 
-[root@ip-172-31-27-117 ~]# aws configure
-AWS Access Key ID [None]: 
-AWS Secret Access Key [None]: 
-Default region name [None]: us-east-1
-Default output format [None]: json
-[root@ip-172-31-27-117 ~]#  aws eks update-kubeconfig --region us-east-1 --name cloud
-Added new context arn:aws:eks:us-east-1:087843402235:cluster/cloud to /root/.kube/config
-[root@ip-172-31-27-117 ~]# kubectl get nodes
-NAME                            STATUS   ROLES    AGE     VERSION
-ip-172-31-44-160.ec2.internal   Ready    <none>   7m52s   v1.34.2-eks-ecaa3a6
-ip-172-31-66-33.ec2.internal    Ready    <none>   7m55s   v1.34.2-eks-ecaa3a6
+---
+
+## Step 3: Configure AWS CLI
+
+```bash
+aws configure
+```
+
+Enter values:
+
+```text
+AWS Access Key ID     : ********
+AWS Secret Access Key : ********
+Default region name   : us-east-1
+Default output format : json
+```
+
+---
+
+## Step 4: Connect to EKS Cluster
+
+```bash
+aws eks update-kubeconfig --region us-east-1 --name cloud
+```
+
+Verify nodes:
+
+```bash
+kubectl get nodes
+```
+
+---
+
+# Recreate Deployment Strategy
+
+---
+
+## Step 5: Create Recreate Deployment YAML
+
+```bash
+vi recreate.yaml
+```
+
+Add content:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp
+spec:
+  replicas: 4
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: myapp
+  template:
+    metadata:
+      labels:
+        app: myapp
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.25.3
+        ports:
+        - containerPort: 80
+```
+
+---
+
+## Step 6: Apply Recreate Deployment
+
+```bash
+kubectl apply -f recreate.yaml
+```
+
+Verify pods:
+
+```bash
+kubectl get pods
+```
+
+---
+
+## Step 7: Update Image in Recreate Deployment
+
+Edit file:
+
+```bash
+vi recreate.yaml
+```
+
+Change image:
+
+```text
+nginx:1.25.3 → nginx:latest
+```
+
+Apply changes:
+
+```bash
+kubectl apply -f recreate.yaml
+```
+
+Verify new pods:
+
+```bash
+kubectl get pods
+```
+
+---
+
+## Step 8: Delete Recreate Deployment
+
+```bash
+kubectl delete -f recreate.yaml
+```
+
+Confirm deletion:
+
+```bash
+kubectl get pods
+```
+
+## 1️⃣ Recreate Deployment Strategy Diagram
+
+```
+USER
+ │
+ │ Request
+ ▼
+SERVICE
+ │
+ │  (Old Pods Deleted First)
+ ▼
+┌─────────────────────────────┐
+│  Pod v1 (nginx:1.25.3)      │   ❌ TERMINATED
+│  Pod v1 (nginx:1.25.3)      │   ❌ TERMINATED
+│  Pod v1 (nginx:1.25.3)      │   ❌ TERMINATED
+│  Pod v1 (nginx:1.25.3)      │   ❌ TERMINATED
+└─────────────────────────────┘
+
+        ⛔ APPLICATION DOWNTIME
+
+┌─────────────────────────────┐
+│  Pod v2 (nginx:latest)      │   ✅ CREATED
+│  Pod v2 (nginx:latest)      │   ✅ CREATED
+│  Pod v2 (nginx:latest)      │   ✅ CREATED
+│  Pod v2 (nginx:latest)      │   ✅ CREATED
+└─────────────────────────────┘
+```
+
+🔴 **Downtime occurs because no pods are running during update**
+
+---
+
+# Rolling Update Deployment Strategy
+
+---
+
+## Step 9: Create Rolling Deployment YAML
+
+```bash
+vi rolling.yaml
+```
+
+Add content:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp
+spec:
+  replicas: 4
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: myapp
+  template:
+    metadata:
+      labels:
+        app: myapp
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
+        ports:
+        - containerPort: 80
+```
+
+---
+
+## Step 10: Apply Rolling Deployment
+
+```bash
+kubectl apply -f rolling.yaml
+```
+
+Verify pods:
+
+```bash
+kubectl get pods -o wide
+```
+
+---
+
+## Step 11: Update Image in Rolling Deployment
+
+Edit file:
+
+```bash
+vi rolling.yaml
+```
+
+Change image:
+
+```text
+nginx → httpd
+```
+
+Change replicas:
+
+```text
+4 → 10
+```
+
+Apply update:
+
+```bash
+kubectl apply -f rolling.yaml
+```
+
+Verify rolling update:
+
+```bash
+kubectl get pods
+```
+
+---
+
+## Step 12: Delete Rolling Deployment
+
+```bash
+kubectl delete -f rolling.yaml
+```
+
+Confirm deletion:
+
+```bash
+kubectl get pods
+```
+
+## 2️⃣ Rolling Update Deployment Strategy Diagram
+
+```
+USER
+ │
+ │ Request
+ ▼
+SERVICE
+ │
+ │ Traffic Distributed
+ ▼
+┌──────────────┐   ┌──────────────┐
+│ Pod v1       │   │ Pod v2       │
+│ nginx        │   │ httpd        │
+└──────────────┘   └──────────────┘
+        │                  │
+        │  Gradual Replace │
+        ▼                  ▼
+┌──────────────┐   ┌──────────────┐
+│ Pod v2       │   │ Pod v2       │
+│ httpd        │   │ httpd        │
+└──────────────┘   └──────────────┘
+```
+
+🟢 **No downtime because old and new pods run together**
+
+---
+
+# Blue-Green Deployment Strategy
+
+---
+
+## Step 13: Create Blue Deployment
+
+```bash
+vi blue-green-deployment-bluereplica-v2.yaml
+```
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: blue-myapp
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: myapp
+      replica: blue
+  template:
+    metadata:
+      labels:
+        app: myapp
+        replica: blue
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
+        ports:
+        - containerPort: 80
+```
+
+Apply:
+
+```bash
+kubectl apply -f blue-green-deployment-bluereplica-v2.yaml
+```
+
+---
+
+## Step 14: Create Green Deployment
+
+```bash
+vi blue-green-deployment-greenreplica-v1.yaml
+```
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: green-myapp
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: myapp
+      replica: green
+  template:
+    metadata:
+      labels:
+        app: myapp
+        replica: green
+    spec:
+      containers:
+      - name: nginx
+        image: httpd
+        ports:
+        - containerPort: 80
+```
+
+Apply:
+
+```bash
+kubectl apply -f blue-green-deployment-greenreplica-v1.yaml
+```
+
+---
+
+## Step 15: Create Blue-Green Service
+
+```bash
+vi blue-green-service.yaml
+```
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: myapp
+spec:
+  type: NodePort
+  selector:
+    app: myapp
+    replica: blue
+  ports:
+  - port: 80
+    targetPort: 80
+```
+
+Apply:
+
+```bash
+kubectl apply -f blue-green-service.yaml
+```
+
+---
+
+## Step 16: Switch Traffic from Blue to Green
+
+Edit service:
+
+```bash
+vi blue-green-service.yaml
+```
+
+Change selector:
+
+```text
+replica: blue → replica: green
+```
+
+Apply:
+
+```bash
+kubectl apply -f blue-green-service.yaml
+```
+
+Verify:
+
+```bash
+kubectl describe svc myapp
+```
+
+---
+
+## Step 17: Delete Blue-Green Resources
+
+```bash
+kubectl delete -f .
+```
+
+## 3️⃣ Blue-Green Deployment Strategy Diagram
+
+```
+                        USER
+                         │
+                         ▼
+                   ┌──────────┐
+                   │ SERVICE  │
+                   └──────────┘
+                         │
+        ┌────────────────┴────────────────┐
+        │                                 │
+        ▼                                 ▼
+┌──────────────────┐             ┌──────────────────┐
+│ BLUE Deployment  │             │ GREEN Deployment │
+│ nginx            │             │ httpd            │
+│ replica=blue     │             │ replica=green    │
+└──────────────────┘             └──────────────────┘
+```
+
+### Traffic Switch
+
+```
+Before Switch:
+Service Selector → replica=blue
+
+After Switch:
+Service Selector → replica=green
+```
+
+🔵 **Instant switch and instant rollback**
+
+---
+
+# Canary Deployment Strategy
+
+---
+
+## Step 18: Create Canary v1 Deployment
+
+```bash
+vi canary-v1-deployment.yaml
+```
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: canary-demo-v1-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: canary-demo
+  template:
+    metadata:
+      labels:
+        app: canary-demo
+    spec:
+      containers:
+      - name: app
+        image: nginx
+        ports:
+        - containerPort: 3000
+```
+
+Apply:
+
+```bash
+kubectl apply -f canary-v1-deployment.yaml
+```
+
+---
+
+## Step 19: Create Canary v2 Deployment
+
+```bash
+vi canary-v2-deployment.yaml
+```
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: canary-demo-v2-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: canary-demo
+  template:
+    metadata:
+      labels:
+        app: canary-demo
+    spec:
+      containers:
+      - name: app
+        image: httpd
+        ports:
+        - containerPort: 3000
+```
+
+Apply:
+
+```bash
+kubectl apply -f canary-v2-deployment.yaml
+```
+
+---
+
+## Step 20: Create Canary Service
+
+```bash
+vi canary-service.yaml
+```
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: canary-service
+spec:
+  type: NodePort
+  selector:
+    app: canary-demo
+  ports:
+  - port: 3000
+    targetPort: 3000
+```
+
+Apply:
+
+```bash
+kubectl apply -f canary-service.yaml
+```
+
+---
+
+## Step 21: Cleanup Canary Resources
+
+```bash
+kubectl delete -f .
+```
+
+Verify cleanup:
+
+```bash
+kubectl get pods
+```
+---
+
+## 4️⃣ Canary Deployment Strategy Diagram
+
+```
+                          USER
+                           │
+                           ▼
+                     ┌────────────┐
+                     │  SERVICE   │
+                     └────────────┘
+                           │
+            ┌──────────────┴──────────────┐
+            │                             │
+            ▼                             ▼
+┌────────────────────┐       ┌────────────────────┐
+│ v1 Deployment      │       │ v2 Deployment      │
+│ Stable Version     │       │ Canary Version     │
+│ nginx              │       │ httpd              │
+└────────────────────┘       └────────────────────┘
+```
+
+🟡 **Small percentage of traffic goes to Canary (v2)**
+🟢 **If stable → increase traffic**
+🔴 **If error → rollback instantly**
+
+---
+
+## Diagram Summary Table
+
+| Strategy   | Downtime | Traffic Control | Rollback Speed |
+| ---------- | -------- | --------------- | -------------- |
+| Recreate   | Yes      | None            | Slow           |
+| Rolling    | No       | Automatic       | Medium         |
+| Blue-Green | No       | Manual Switch   | Instant        |
+| Canary     | No       | Gradual         | Fast           |
+
+---
 
 
----- Recreate Strategy ------
-
-[root@ip-172-31-27-117 ~]# vi recreate.yaml
-[root@ip-172-31-27-117 ~]# kubectl apply -f recreate.yaml
-deployment.apps/myapp created
-[root@ip-172-31-27-117 ~]# kubectl get pods
-NAME                     READY   STATUS    RESTARTS   AGE
-myapp-56b89cc9c8-9zdmz   1/1     Running   0          13s
-myapp-56b89cc9c8-f2fkj   1/1     Running   0          13s
-myapp-56b89cc9c8-m2wtl   1/1     Running   0          13s
-myapp-56b89cc9c8-twl2l   1/1     Running   0          13s
-[root@ip-172-31-27-117 ~]# kubectl get svc
-NAME         TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
-kubernetes   ClusterIP   10.100.0.1   <none>        443/TCP   15m
-[root@ip-172-31-27-117 ~]# kubectl describe svc kubernetes 
-Name:                     kubernetes
-Namespace:                default
-Labels:                   component=apiserver
-                          provider=kubernetes
-Annotations:              <none>
-Selector:                 <none>
-Type:                     ClusterIP
-IP Family Policy:         SingleStack
-IP Families:              IPv4
-IP:                       10.100.0.1
-IPs:                      10.100.0.1
-Port:                     https  443/TCP
-TargetPort:               443/TCP
-Endpoints:                172.31.35.6:443,172.31.94.122:443
-Session Affinity:         None
-Internal Traffic Policy:  Cluster
-Events:                   <none>
-[root@ip-172-31-27-117 ~]#  vi recreate.yaml
--------------------------------------
-vi recreate.yaml inside change image
-    nginx:1.25.3  --> nginx:latest
--------------------------------------
-
-[root@ip-172-31-27-117 ~]# kubectl apply -f recreate.yaml
-deployment.apps/myapp configured
-[root@ip-172-31-27-117 ~]# kubectl get pods
-NAME                     READY   STATUS    RESTARTS   AGE
-myapp-59bc979476-4mspr   1/1     Running   0          11s
-myapp-59bc979476-7nmx4   1/1     Running   0          11s
-myapp-59bc979476-q68jl   1/1     Running   0          11s
-myapp-59bc979476-tz45g   1/1     Running   0          11s
-[root@ip-172-31-27-117 ~]# kubectl describe svc kubernetes 
-Name:                     kubernetes
-Namespace:                default
-Labels:                   component=apiserver
-                          provider=kubernetes
-Annotations:              <none>
-Selector:                 <none>
-Type:                     ClusterIP
-IP Family Policy:         SingleStack
-IP Families:              IPv4
-IP:                       10.100.0.1
-IPs:                      10.100.0.1
-Port:                     https  443/TCP
-TargetPort:               443/TCP
-Endpoints:                172.31.35.6:443,172.31.94.122:443
-Session Affinity:         None
-Internal Traffic Policy:  Cluster
-Events:                   <none>
-[root@ip-172-31-27-117 ~]# kubelet delete -f recreate.yaml
--bash: kubelet: command not found
-[root@ip-172-31-27-117 ~]# kubectl delete -f recreate.yaml
-deployment.apps "myapp" deleted from default namespace
-[root@ip-172-31-27-117 ~]# kubectl get pods
-No resources found in default namespace.
-
-
----- Rolling Strategy ----
-
-
-[root@ip-172-31-27-117 ~]# vi rolling.yaml
-[root@ip-172-31-27-117 ~]# kubectl apply -f rolling.yaml
-deployment.apps/myapp created
-[root@ip-172-31-27-117 ~]# kubectl get pods
-NAME                     READY   STATUS    RESTARTS   AGE
-myapp-56c849c466-d54fd   1/1     Running   0          10s
-myapp-56c849c466-dvz2j   1/1     Running   0          10s
-myapp-56c849c466-h6685   1/1     Running   0          10s
-myapp-56c849c466-w9tj2   1/1     Running   0          10s
-[root@ip-172-31-27-117 ~]# kubectl get svc
-NAME         TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
-kubernetes   ClusterIP   10.100.0.1   <none>        443/TCP   22m
-[root@ip-172-31-27-117 ~]# kubectl describe svc kubernetes 
-Name:                     kubernetes
-Namespace:                default
-Labels:                   component=apiserver
-                          provider=kubernetes
-Annotations:              <none>
-Selector:                 <none>
-Type:                     ClusterIP
-IP Family Policy:         SingleStack
-IP Families:              IPv4
-IP:                       10.100.0.1
-IPs:                      10.100.0.1
-Port:                     https  443/TCP
-TargetPort:               443/TCP
-Endpoints:                172.31.35.6:443,172.31.94.122:443
-Session Affinity:         None
-Internal Traffic Policy:  Cluster
-Events:                   <none>
-[root@ip-172-31-27-117 ~]# kubectl get pods -o wide
-NAME                     READY   STATUS    RESTARTS   AGE   IP              NODE                            NOMINATED NODE   READINESS GATES
-myapp-56c849c466-d54fd   1/1     Running   0          89s   172.31.37.138   ip-172-31-44-160.ec2.internal   <none>           <none>
-myapp-56c849c466-dvz2j   1/1     Running   0          89s   172.31.42.101   ip-172-31-44-160.ec2.internal   <none>           <none>
-myapp-56c849c466-h6685   1/1     Running   0          89s   172.31.78.145   ip-172-31-66-33.ec2.internal    <none>           <none>
-myapp-56c849c466-w9tj2   1/1     Running   0          89s   172.31.75.99    ip-172-31-66-33.ec2.internal    <none>           <none>
-[root@ip-172-31-27-117 ~]# vi rolling.yaml
-[root@ip-172-31-27-117 ~]# kubectl apply -f rolling.yaml
-deployment.apps/myapp configured
-[root@ip-172-31-27-117 ~]# kubectl get pods -o wide
-NAME                     READY   STATUS    RESTARTS   AGE   IP              NODE                            NOMINATED NODE   READINESS GATES
-myapp-75bb575586-m5tvl   1/1     Running   0          9s    172.31.46.95    ip-172-31-44-160.ec2.internal   <none>           <none>
-myapp-75bb575586-qqt97   1/1     Running   0          7s    172.31.75.163   ip-172-31-66-33.ec2.internal    <none>           <none>
-myapp-75bb575586-wgs5b   1/1     Running   0          8s    172.31.46.142   ip-172-31-44-160.ec2.internal   <none>           <none>
-myapp-75bb575586-x66pq   1/1     Running   0          8s    172.31.73.125   ip-172-31-66-33.ec2.internal    <none>           <none>
-[root@ip-172-31-27-117 ~]# vi rolling.yaml
-[root@ip-172-31-27-117 ~]# kubectl apply -f rolling.yaml
-deployment.apps/myapp configured
-[root@ip-172-31-27-117 ~]# kubectl get pods
-NAME                    READY   STATUS    RESTARTS   AGE
-myapp-dbc6d5ccc-86bsc   1/1     Running   0          10s
-myapp-dbc6d5ccc-hnsdm   1/1     Running   0          10s
-myapp-dbc6d5ccc-rwpk6   1/1     Running   0          12s
-myapp-dbc6d5ccc-vfzv8   1/1     Running   0          12s
-[root@ip-172-31-27-117 ~]# kubectl get pods -o wide
-NAME                    READY   STATUS    RESTARTS   AGE   IP              NODE                            NOMINATED NODE   READINESS GATES
-myapp-dbc6d5ccc-86bsc   1/1     Running   0          18s   172.31.75.99    ip-172-31-66-33.ec2.internal    <none>           <none>
-myapp-dbc6d5ccc-hnsdm   1/1     Running   0          18s   172.31.47.112   ip-172-31-44-160.ec2.internal   <none>           <none>
-myapp-dbc6d5ccc-rwpk6   1/1     Running   0          20s   172.31.41.50    ip-172-31-44-160.ec2.internal   <none>           <none>
-myapp-dbc6d5ccc-vfzv8   1/1     Running   0          20s   172.31.78.145   ip-172-31-66-33.ec2.internal    <none>           <none>
-[root@ip-172-31-27-117 ~]# vi rolling.yaml
-[root@ip-172-31-27-117 ~]# kubectl apply -f rolling.yaml
-deployment.apps/myapp unchanged
-[root@ip-172-31-27-117 ~]# kubectl get pods
-NAME                    READY   STATUS    RESTARTS   AGE
-myapp-dbc6d5ccc-86bsc   1/1     Running   0          2m50s
-myapp-dbc6d5ccc-hnsdm   1/1     Running   0          2m50s
-myapp-dbc6d5ccc-rwpk6   1/1     Running   0          2m52s
-myapp-dbc6d5ccc-vfzv8   1/1     Running   0          2m52s
-[root@ip-172-31-27-117 ~]# vi rolling.yaml
-[root@ip-172-31-27-117 ~]# kubectl apply -f rolling.yaml
-deployment.apps/myapp configured
-[root@ip-172-31-27-117 ~]# kubectl get pods
-NAME                     READY   STATUS    RESTARTS   AGE
-myapp-75bb575586-4tggm   1/1     Running   0          4s
-myapp-75bb575586-ccqv7   1/1     Running   0          6s
-myapp-75bb575586-g4l82   1/1     Running   0          6s
-myapp-75bb575586-hnq7j   1/1     Running   0          5s
-[root@ip-172-31-27-117 ~]# kubectl describe myapp-75bb575586-4tggm
-error: the server doesn't have a resource type "myapp-75bb575586-4tggm"
-[root@ip-172-31-27-117 ~]# kubectl get svc
-NAME         TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
-kubernetes   ClusterIP   10.100.0.1   <none>        443/TCP   33m
-[root@ip-172-31-27-117 ~]# kubectl describe svc kubernetes 
-Name:                     kubernetes
-Namespace:                default
-Labels:                   component=apiserver
-                          provider=kubernetes
-Annotations:              <none>
-Selector:                 <none>
-Type:                     ClusterIP
-IP Family Policy:         SingleStack
-IP Families:              IPv4
-IP:                       10.100.0.1
-IPs:                      10.100.0.1
-Port:                     https  443/TCP
-TargetPort:               443/TCP
-Endpoints:                172.31.35.6:443,172.31.94.122:443
-Session Affinity:         None
-Internal Traffic Policy:  Cluster
-Events:                   <none>
-[root@ip-172-31-27-117 ~]# kubectl get pods -o wide
-NAME                     READY   STATUS    RESTARTS   AGE    IP              NODE                            NOMINATED NODE   READINESS GATES
-myapp-75bb575586-4tggm   1/1     Running   0          115s   172.31.75.163   ip-172-31-66-33.ec2.internal    <none>           <none>
-myapp-75bb575586-ccqv7   1/1     Running   0          117s   172.31.38.182   ip-172-31-44-160.ec2.internal   <none>           <none>
-myapp-75bb575586-g4l82   1/1     Running   0          117s   172.31.64.131   ip-172-31-66-33.ec2.internal    <none>           <none>
-myapp-75bb575586-hnq7j   1/1     Running   0          116s   172.31.40.20    ip-172-31-44-160.ec2.internal   <none>           <none>
-[root@ip-172-31-27-117 ~]# vi rolling.yaml
---------------------------------------
-rolling.yaml inside change image name 
-      nginx --> httpd 
-    replica:  4 --> 10
--------------------------------------
-
-[root@ip-172-31-27-117 ~]# kubectl apply -f rolling.yaml
-deployment.apps/myapp configured
-[root@ip-172-31-27-117 ~]# kubectl get pods
-NAME                     READY   STATUS      RESTARTS   AGE
-myapp-84bb689f97-lvq5h   0/1     Completed   0          7m4s
-myapp-dbc6d5ccc-5fn9h    1/1     Running     0          2s
-myapp-dbc6d5ccc-c4fg7    1/1     Running     0          3s
-myapp-dbc6d5ccc-fqdrv    1/1     Running     0          2s
-myapp-dbc6d5ccc-jvspf    1/1     Running     0          3s
-myapp-dbc6d5ccc-nwzwh    1/1     Running     0          2s
-myapp-dbc6d5ccc-p6c59    1/1     Running     0          3s
-myapp-dbc6d5ccc-pd88p    1/1     Running     0          3s
-myapp-dbc6d5ccc-qqnf8    1/1     Running     0          2s
-myapp-dbc6d5ccc-vz42d    1/1     Running     0          3s
-myapp-dbc6d5ccc-zzlmk    1/1     Running     0          1s
-[root@ip-172-31-27-117 ~]# kubectl get pods
-NAME                    READY   STATUS    RESTARTS   AGE
-myapp-dbc6d5ccc-5fn9h   1/1     Running   0          18s
-myapp-dbc6d5ccc-c4fg7   1/1     Running   0          19s
-myapp-dbc6d5ccc-fqdrv   1/1     Running   0          18s
-myapp-dbc6d5ccc-jvspf   1/1     Running   0          19s
-myapp-dbc6d5ccc-nwzwh   1/1     Running   0          18s
-myapp-dbc6d5ccc-p6c59   1/1     Running   0          19s
-myapp-dbc6d5ccc-pd88p   1/1     Running   0          19s
-myapp-dbc6d5ccc-qqnf8   1/1     Running   0          18s
-myapp-dbc6d5ccc-vz42d   1/1     Running   0          19s
-myapp-dbc6d5ccc-zzlmk   1/1     Running   0          17s
-[root@ip-172-31-27-117 ~]# kubectl delete -f rolling.yaml
-deployment.apps "myapp" deleted from default namespace
-[root@ip-172-31-27-117 ~]# kubectl get pods
-No resources found in default namespace.
-
-
-
------ Blue-Green Strategy ----
-
-
-[root@ip-172-31-27-117 ~]# vi blue-green-deployment-bluereplica-v2.yaml
-[root@ip-172-31-27-117 ~]# kubectl apply -f  blue-green-deployment-bluereplica-v2.yaml
-deployment.apps/blue-myapp created
-[root@ip-172-31-27-117 ~]# kubectl get pods
-NAME                          READY   STATUS    RESTARTS   AGE
-blue-myapp-56bbf68745-2bm84   1/1     Running   0          6s
-blue-myapp-56bbf68745-pjftq   1/1     Running   0          6s
-[root@ip-172-31-27-117 ~]# vi blue-green-deployment-greenreplica-v1.yaml
-[root@ip-172-31-27-117 ~]# kubectl apply -f  blue-green-deployment-greenreplica-v1.yaml
-deployment.apps/green-myapp created
-[root@ip-172-31-27-117 ~]# kubectl get pods
-NAME                           READY   STATUS    RESTARTS   AGE
-blue-myapp-56bbf68745-2bm84    1/1     Running   0          71s
-blue-myapp-56bbf68745-pjftq    1/1     Running   0          71s
-green-myapp-768bbfb9c8-h5785   1/1     Running   0          5s
-green-myapp-768bbfb9c8-jqwpv   1/1     Running   0          5s
-[root@ip-172-31-27-117 ~]# vi blue-green-service.yaml
-[root@ip-172-31-27-117 ~]# kubectl apply -f  vi blue-green-service.yaml
-error: Unexpected args: [blue-green-service.yaml]
-See 'kubectl apply -h' for help and examples
-[root@ip-172-31-27-117 ~]# kubectl apply -f  blue-green-service.yaml
-service/myapp created
-[root@ip-172-31-27-117 ~]# kubectl get pods
-NAME                           READY   STATUS    RESTARTS   AGE
-blue-myapp-56bbf68745-2bm84    1/1     Running   0          2m29s
-blue-myapp-56bbf68745-pjftq    1/1     Running   0          2m29s
-green-myapp-768bbfb9c8-h5785   1/1     Running   0          83s
-green-myapp-768bbfb9c8-jqwpv   1/1     Running   0          83s
-[root@ip-172-31-27-117 ~]# kubectl get pods -o wide
-NAME                           READY   STATUS    RESTARTS   AGE     IP              NODE                            NOMINATED NODE   READINESS GATES
-blue-myapp-56bbf68745-2bm84    1/1     Running   0          2m49s   172.31.37.138   ip-172-31-44-160.ec2.internal   <none>           <none>
-blue-myapp-56bbf68745-pjftq    1/1     Running   0          2m49s   172.31.78.145   ip-172-31-66-33.ec2.internal    <none>           <none>
-green-myapp-768bbfb9c8-h5785   1/1     Running   0          103s    172.31.75.99    ip-172-31-66-33.ec2.internal    <none>           <none>
-green-myapp-768bbfb9c8-jqwpv   1/1     Running   0          103s    172.31.38.182   ip-172-31-44-160.ec2.internal   <none>           <none>
-[root@ip-172-31-27-117 ~]#  vi blue-green-service.yaml
--------------------------------------------------
-blue-green-service.yaml inside we change replica 
-replica inside we can change 
-       blue --> green
--------------------------------------------------
-
-[root@ip-172-31-27-117 ~]# kubectl apply -f  blue-green-service.yaml
-service/myapp configured
-[root@ip-172-31-27-117 ~]# kubectl get pods -o wide
-NAME                           READY   STATUS    RESTARTS   AGE     IP              NODE                            NOMINATED NODE   READINESS GATES
-blue-myapp-56bbf68745-2bm84    1/1     Running   0          8m15s   172.31.37.138   ip-172-31-44-160.ec2.internal   <none>           <none>
-blue-myapp-56bbf68745-pjftq    1/1     Running   0          8m15s   172.31.78.145   ip-172-31-66-33.ec2.internal    <none>           <none>
-green-myapp-768bbfb9c8-h5785   1/1     Running   0          7m9s    172.31.75.99    ip-172-31-66-33.ec2.internal    <none>           <none>
-green-myapp-768bbfb9c8-jqwpv   1/1     Running   0          7m9s    172.31.38.182   ip-172-31-44-160.ec2.internal   <none>           <none>
-[root@ip-172-31-27-117 ~]# kubectl get svc
-NAME         TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)        AGE
-kubernetes   ClusterIP   10.100.0.1      <none>        443/TCP        56m
-myapp        NodePort    10.100.18.202   <none>        80:32278/TCP   6m5s
-[root@ip-172-31-27-117 ~]# kubectl describe svc myapp
-Name:                     myapp
-Namespace:                default
-Labels:                   <none>
-Annotations:              <none>
-Selector:                 app=myapp,replica=green
-Type:                     NodePort
-IP Family Policy:         SingleStack
-IP Families:              IPv4
-IP:                       10.100.18.202
-IPs:                      10.100.18.202
-Port:                     <unset>  80/TCP
-TargetPort:               http/TCP
-NodePort:                 <unset>  32278/TCP
-Endpoints:                172.31.38.182:80,172.31.75.99:80
-Session Affinity:         None
-External Traffic Policy:  Cluster
-Internal Traffic Policy:  Cluster
-Events:                   <none>
-[root@ip-172-31-27-117 ~]# vi blue-green-service.yaml
---------------------------------------------------
-blue-green-service.yaml inside we change replica 
-replica inside we can change 
-       green --> blue
---------------------------------------------------
-
-[root@ip-172-31-27-117 ~]# kubectl apply -f  blue-green-service.yaml
-service/myapp configured
-[root@ip-172-31-27-117 ~]# kubectl describe svc myapp
-Name:                     myapp
-Namespace:                default
-Labels:                   <none>
-Annotations:              <none>
-Selector:                 app=myapp,replica=blue
-Type:                     NodePort
-IP Family Policy:         SingleStack
-IP Families:              IPv4
-IP:                       10.100.18.202
-IPs:                      10.100.18.202
-Port:                     <unset>  80/TCP
-TargetPort:               http/TCP
-NodePort:                 <unset>  32278/TCP
-Endpoints:                172.31.37.138:80,172.31.78.145:80
-Session Affinity:         None
-External Traffic Policy:  Cluster
-Internal Traffic Policy:  Cluster
-Events:                   <none>
-[root@ip-172-31-27-117 ~]# kubectl get delete -f .
-error: when paths, URLs, or stdin is provided as input, you may not specify resource arguments as well
-[root@ip-172-31-27-117 ~]# kubectl delete -f .
-deployment.apps "blue-myapp" deleted from default namespace
-deployment.apps "green-myapp" deleted from default namespace
-service "myapp" deleted from default namespace
-Error from server (NotFound): error when deleting "recreate.yaml": deployments.apps "myapp" not found
-Error from server (NotFound): error when deleting "rolling.yaml": deployments.apps "myapp" not found
-[root@ip-172-31-27-117 ~]# kubectl get pods
-No resources found in default namespace.
-
-
-
------ Canary Strategy ----
-
-[root@ip-172-31-27-117 ~]# vi canary-v1-deployment.yaml
-[root@ip-172-31-27-117 ~]# kubectl apply -f canary-v1-deployment.yaml
-deployment.apps/canary-demo-v1-deployment created
-[root@ip-172-31-27-117 ~]# kubectl get pods
-NAME                                       READY   STATUS    RESTARTS   AGE
-canary-demo-v1-deployment-f89bbffb-2bfr8   1/1     Running   0          5s
-[root@ip-172-31-27-117 ~]# vi canary-v2-deployment.yaml
-[root@ip-172-31-27-117 ~]# kubectl apply -f canary-v2-deployment.yaml
-deployment.apps/canary-demo-v2-deployment created
-[root@ip-172-31-27-117 ~]# kubectl get pods
-NAME                                       READY   STATUS    RESTARTS   AGE
-canary-demo-v1-deployment-f89bbffb-2bfr8   1/1     Running   0          78s
-[root@ip-172-31-27-117 ~]# vi canary-service.yaml
-[root@ip-172-31-27-117 ~]# kubectl apply -f canary-service.yaml
-service/canary-service created
-[root@ip-172-31-27-117 ~]# kubectl get pods
-NAME                                       READY   STATUS    RESTARTS   AGE
-canary-demo-v1-deployment-f89bbffb-2bfr8   1/1     Running   0          2m21s
-[root@ip-172-31-27-117 ~]# kubectl get svc
-NAME             TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)          AGE
-canary-service   NodePort    10.100.22.20   <none>        3000:30752/TCP   14s
-kubernetes       ClusterIP   10.100.0.1     <none>        443/TCP          70m
-[root@ip-172-31-27-117 ~]# kubectl describe svc canary-service
-Name:                     canary-service
-Namespace:                default
-Labels:                   app=canary-demo
-Annotations:              <none>
-Selector:                 app=canary-demo
-Type:                     NodePort
-IP Family Policy:         SingleStack
-IP Families:              IPv4
-IP:                       10.100.22.20
-IPs:                      10.100.22.20
-Port:                     http-port  3000/TCP
-TargetPort:               3000/TCP
-NodePort:                 http-port  30752/TCP
-Endpoints:                172.31.42.101:3000
-Session Affinity:         None
-External Traffic Policy:  Cluster
-Internal Traffic Policy:  Cluster
-Events:                   <none>
-[root@ip-172-31-27-117 ~]# vi canary-service.yaml
-[root@ip-172-31-27-117 ~]# kubectl apply -f canary-service.yaml
-service/canary-service configured
-[root@ip-172-31-27-117 ~]# kubectl get pods
-NAME                                       READY   STATUS    RESTARTS   AGE
-canary-demo-v1-deployment-f89bbffb-2bfr8   1/1     Running   0          6m8s
-[root@ip-172-31-27-117 ~]# vi canary-service.yaml
-[root@ip-172-31-27-117 ~]# kubectl delete -f .
-service "canary-service" deleted from default namespace
-deployment.apps "canary-demo-v1-deployment" deleted from default namespace
-deployment.apps "canary-demo-v2-deployment" deleted from default namespace
-Error from server (NotFound): error when deleting "blue-green-deployment-bluereplica-v2.yaml": deployments.apps "blue-myapp" not found
-Error from server (NotFound): error when deleting "blue-green-deployment-greenreplica-v1.yaml": deployments.apps "green-myapp" not found
-Error from server (NotFound): error when deleting "blue-green-service.yaml": services "myapp" not found
-Error from server (NotFound): error when deleting "recreate.yaml": deployments.apps "myapp" not found
-Error from server (NotFound): error when deleting "rolling.yaml": deployments.apps "myapp" not found
-[root@ip-172-31-27-117 ~]# kubectl get pods
-No resources found in default namespace.
-[root@ip-172-31-27-117 ~]# 
