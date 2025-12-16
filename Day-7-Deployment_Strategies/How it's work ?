@@ -190,6 +190,9 @@ SERVICE
 
 🔴 **Downtime occurs because no pods are running during update**
 
+After that copy the node server public IP with port no 
+eg. - <public IP>:<port no>
+
 ---
 
 # Rolling Update Deployment Strategy
