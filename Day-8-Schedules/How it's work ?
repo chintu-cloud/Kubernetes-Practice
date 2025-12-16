@@ -1,0 +1,323 @@
+Below is the **FULL END-TO-END PROCESS WITH COMMANDS + REAL OUTPUT FORMAT**, written exactly like a **lab manual**.
+You can paste this directly as **`Day-8-Schedules/README.md`**.
+
+---
+
+````markdown
+# Day 8 – Kubernetes Scheduling (Complete Process with Output)
+
+This lab demonstrates Kubernetes scheduling concepts using DaemonSet, NodeSelector, and Node Affinity on an AWS EKS cluster.
+
+---
+
+## 1. Verify Cluster Connectivity
+
+```bash
+kubectl get nodes
+````
+
+**Output:**
+
+```text
+NAME                            STATUS   ROLES    AGE   VERSION
+ip-172-31-23-146.ec2.internal   Ready    <none>   9m    v1.34.2-eks
+ip-172-31-88-121.ec2.internal   Ready    <none>   9m    v1.34.2-eks
+```
+
+---
+
+## 2. DaemonSet
+
+### Apply DaemonSet
+
+```bash
+kubectl apply -f Daemonset.yaml
+```
+
+**Output:**
+
+```text
+daemonset.apps/simple-nginx-daemonset created
+```
+
+### Verify Pods
+
+```bash
+kubectl get pods
+```
+
+**Output:**
+
+```text
+NAME                           READY   STATUS    AGE
+simple-nginx-daemonset-29drt   1/1     Running   12s
+simple-nginx-daemonset-pcst8   1/1     Running   12s
+```
+
+> One Pod runs on each node.
+
+---
+
+### Scale Node Group (2 → 3 nodes)
+
+After increasing Auto Scaling Group desired capacity:
+
+```bash
+kubectl get nodes
+```
+
+**Output:**
+
+```text
+NAME                            STATUS   AGE
+ip-172-31-23-146.ec2.internal   Ready    11m
+ip-172-31-6-87.ec2.internal     Ready    45s
+ip-172-31-88-121.ec2.internal   Ready    11m
+```
+
+```bash
+kubectl get pods
+```
+
+**Output:**
+
+```text
+NAME                           READY   STATUS    AGE
+simple-nginx-daemonset-29drt   1/1     Running   2m
+simple-nginx-daemonset-mh4n4   1/1     Running   25s
+simple-nginx-daemonset-pcst8   1/1     Running   2m
+```
+
+> DaemonSet automatically created a Pod on the new node.
+
+---
+
+### Delete DaemonSet
+
+```bash
+kubectl delete -f Daemonset.yaml
+```
+
+**Output:**
+
+```text
+daemonset.apps "simple-nginx-daemonset" deleted
+```
+
+---
+
+## 3. NodeSelector
+
+### Apply Deployment
+
+```bash
+kubectl apply -f nodeselector.yaml
+```
+
+**Output:**
+
+```text
+deployment.apps/myapp-deployment created
+```
+
+### Label a Node
+
+```bash
+kubectl label nodes ip-172-31-23-146.ec2.internal clr=pink
+```
+
+**Output:**
+
+```text
+node/ip-172-31-23-146.ec2.internal labeled
+```
+
+### Verify Pods
+
+```bash
+kubectl get pods
+```
+
+**Output:**
+
+```text
+NAME                                READY   STATUS    AGE
+myapp-deployment-66c66799c4-4mgpp   1/1     Running   3m
+myapp-deployment-66c66799c4-8lfv5   1/1     Running   3m
+```
+
+### Verify Labels
+
+```bash
+kubectl get nodes --show-labels
+```
+
+**Output (partial):**
+
+```text
+ip-172-31-23-146.ec2.internal ... clr=pink
+ip-172-31-6-87.ec2.internal     ...
+```
+
+> Pods run only on nodes with `clr=pink`.
+
+---
+
+### Delete NodeSelector Deployment
+
+```bash
+kubectl delete -f nodeselector.yaml
+```
+
+**Output:**
+
+```text
+deployment.apps "myapp-deployment" deleted
+```
+
+---
+
+## 4. Node Affinity – Preferred
+
+### Apply Deployment
+
+```bash
+kubectl apply -f node-affinity-preffered.yaml
+```
+
+**Output:**
+
+```text
+deployment.apps/nginx-pref-deployment created
+```
+
+### Verify Pods
+
+```bash
+kubectl get pods -o wide
+```
+
+**Output:**
+
+```text
+NAME                                     STATUS   NODE
+nginx-pref-deployment-58d59d7676-m6qqq   Running  ip-172-31-6-87
+nginx-pref-deployment-58d59d7676-ppb69   Running  ip-172-31-23-146
+nginx-pref-deployment-58d59d7676-tk8lf   Running  ip-172-31-6-87
+```
+
+> Pods prefer labeled nodes but can run anywhere.
+
+### Label Another Node
+
+```bash
+kubectl label nodes ip-172-31-6-87.ec2.internal clr=pink
+```
+
+**Output:**
+
+```text
+node/ip-172-31-6-87.ec2.internal labeled
+```
+
+---
+
+### Delete Preferred Affinity Deployment
+
+```bash
+kubectl delete -f node-affinity-preffered.yaml
+```
+
+**Output:**
+
+```text
+deployment.apps "nginx-pref-deployment" deleted
+```
+
+---
+
+## 5. Node Affinity – Required
+
+### Apply Deployment
+
+```bash
+kubectl apply -f node-affinity-required.yaml
+```
+
+**Output:**
+
+```text
+deployment.apps/nginx-deployment created
+```
+
+### Verify Pods
+
+```bash
+kubectl get pods
+```
+
+**Output:**
+
+```text
+NAME                                READY   STATUS    AGE
+nginx-deployment-7d5f4c7777-bvq7m   0/1     Pending   45s
+nginx-deployment-7d5f4c7777-qnvk7   0/1     Pending   45s
+nginx-deployment-7d5f4c7777-w4chq   0/1     Pending   45s
+```
+
+### Describe Scheduling
+
+```bash
+kubectl get pods -o wide
+```
+
+**Output:**
+
+```text
+NAME                                STATUS    NODE
+nginx-deployment-7d5f4c7777-bvq7m   Pending   <none>
+```
+
+> Pods stay **Pending** because required affinity conditions are not satisfied.
+
+---
+
+### Delete Required Affinity Deployment
+
+```bash
+kubectl delete -f node-affinity-required.yaml
+```
+
+**Output:**
+
+```text
+deployment.apps "nginx-deployment" deleted
+```
+
+---
+
+## 6. Final Verification
+
+```bash
+kubectl get pods
+```
+
+**Output:**
+
+```text
+No resources found in default namespace.
+```
+
+---
+
+## 7. Key Learnings
+
+* DaemonSet runs one Pod per node automatically
+* NodeSelector is label-based and strict
+* Preferred affinity is flexible
+* Required affinity is strict and can block Pods
+* Labels control scheduling behavior
+
+---
+
+
