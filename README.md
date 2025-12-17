@@ -170,6 +170,7 @@ mv kubectl /usr/local/bin/kubectl
 # Verify installation:
 kubectl version --client
 
+---
 
 Output:
 ```
