@@ -1,0 +1,150 @@
+
+
+# 📘 Kubernetes Namespace & Deployment Demo
+
+This README documents the steps to create namespaces, deploy applications, and troubleshoot pods in Kubernetes.
+
+---
+
+## 🚀 Steps Performed
+
+### 1. Check existing namespaces
+```bash
+kubectl get ns
+```
+
+Namespaces present:
+- `default`
+- `external-dns`
+- `kube-node-lease`
+- `kube-public`
+- `kube-system`
+
+---
+
+### 2. Create a new namespace `chandan`
+```bash
+kubectl create ns chandan
+```
+
+Output:
+```
+namespace/chandan created
+```
+
+---
+
+### 3. Apply deployment manifests in `chandan` namespace
+```bash
+kubectl apply -f . -n chandan
+```
+
+Output:
+```
+deployment.apps/nginx-deployment created
+```
+
+---
+
+### 4. Verify pods in `chandan` namespace
+```bash
+kubectl get pod -n chandan
+```
+
+Pods status:
+```
+nginx-deployment-64c54b7d6b-xxxxx   0/1   ImagePullBackOff
+```
+
+---
+
+### 5. Check pods across all namespaces
+```bash
+kubectl get pods --all-namespaces
+```
+
+Observation:
+- Pods in `chandan` namespace failed (`ErrImagePull` / `ImagePullBackOff`).
+- System pods (`coredns`, `aws-node`, `metrics-server`) were running fine.
+
+---
+
+### 6. Create a new namespace and pod using `name.yml`
+```bash
+vi name.yml
+kubectl apply -f name.yml
+```
+
+Output:
+```
+namespace/demo created
+pod/myapp created
+```
+
+---
+
+### 7. Verify pods in all namespaces
+```bash
+kubectl get pods --all-namespaces
+```
+
+Observation:
+- `demo` namespace pod `myapp` was **Running**.
+- `chandan` namespace pods still in `ImagePullBackOff`.
+
+---
+
+### 8. Verify pod in `demo` namespace
+```bash
+kubectl get pod -n demo
+```
+
+Output:
+```
+NAME    READY   STATUS    RESTARTS   AGE
+myapp   1/1     Running   0          27s
+```
+
+---
+
+### 9. Delete resources
+```bash
+kubectl delete -f .
+```
+
+Output:
+```
+namespace "demo" deleted
+pod "myapp" deleted from demo namespace
+Error from server (NotFound): error when deleting "deploy.yml": deployments.apps "nginx-deployment" not found
+```
+
+---
+
+### 10. Verify pods in default namespace
+```bash
+kubectl get pods
+```
+
+Output:
+```
+No resources found in default namespace.
+```
+
+---
+
+## ⚠️ Notes
+- Pods in `chandan` namespace failed due to **image pull errors**. Likely causes:
+  - Incorrect image name in deployment YAML.
+  - Missing registry authentication.
+  - Network/DNS issues pulling from Docker Hub or ECR.
+- Pod `myapp` in `demo` namespace ran successfully.
+
+---
+
+## ✅ Conclusion
+- Successfully created and deleted namespaces (`chandan`, `demo`).
+- Verified pod lifecycle (`myapp` ran, `nginx-deployment` failed).
+- Demonstrated namespace isolation and troubleshooting with `kubectl`.
+
+
