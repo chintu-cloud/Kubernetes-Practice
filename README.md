@@ -154,34 +154,22 @@ This README documents the steps to install `kubectl`, configure AWS CLI, connect
 ---
 
 ## 🔧 Step 1: Install `kubectl`
+
+
 ```bash
+# Download the latest stable release:
 curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+
+# Provide execution permission:
 chmod +x kubectl
+
+# Move binary to system path:
 mv kubectl /usr/local/bin/kubectl
+
+
+# Verify installation:
 kubectl version --client
-```
----
 
-
-Download the latest stable release:
-```bash
-curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-```
-
-Provide execution permission:
-```bash
-chmod +x kubectl
-```
-
-Move binary to system path:
-```bash
-mv kubectl /usr/local/bin/kubectl
-```
-
-Verify installation:
-```bash
-kubectl version --client
-```
 
 Output:
 ```
