@@ -127,25 +127,7 @@ Go to **Cluster → EKS → Compute → Node groups → Add**
 - SG: **default**
 
 ---
-```
-External Clients (Browser, API, CI/CD)
-        |
-     Ingress / LoadBalancer / NodePort / ClusterIP
-        |
-   Deployments & ReplicaSets
-        |
-        Pods
-        |
-     Containers
-        |
-   Worker Nodes (kubelet, kube-proxy)
-        |
-   Control Plane (etcd, kube-apiserver, scheduler, controller-manager)
-```
 
-
-
----
 
 # 📘 Kubernetes on AWS EKS – Setup Guide
 
