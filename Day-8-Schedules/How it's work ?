@@ -1,9 +1,6 @@
-Below is the **FULL END-TO-END PROCESS WITH COMMANDS + REAL OUTPUT FORMAT**, written exactly like a **lab manual**.
-You can paste this directly as **`Day-8-Schedules/README.md`**.
+ **`Day-8-Schedules/README.md`**.
 
----
 
-````markdown
 # Day 8 – Kubernetes Scheduling (Complete Process with Output)
 
 This lab demonstrates Kubernetes scheduling concepts using DaemonSet, NodeSelector, and Node Affinity on an AWS EKS cluster.
@@ -318,6 +315,355 @@ No resources found in default namespace.
 * Required affinity is strict and can block Pods
 * Labels control scheduling behavior
 
----
 
+
+-------- Taint & Toleration -------
+
+[ec2-user@ip-172-31-20-222 ~]$ sudo su -
+[root@ip-172-31-20-222 ~]# # Download kubectl binary:
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+
+# Provide execution permission:
+chmod +x kubectl
+
+
+# Move kubectl to system path:
+mv kubectl /usr/local/bin/kubectl
+
+
+# Verify kubectl version:
+kubectl version --client
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100   138  100   138    0     0   3443      0 --:--:-- --:--:-- --:--:--  3538
+100 57.7M  100 57.7M    0     0   331M      0 --:--:-- --:--:-- --:--:--  331M
+Client Version: v1.34.3
+Kustomize Version: v5.7.1
+[root@ip-172-31-20-222 ~]# aws configure
+AWS Access Key ID [None]: 
+AWS Secret Access Key [None]: 
+Default region name [None]: us-east-1
+Default output format [None]: json
+[root@ip-172-31-20-222 ~]# aws eks update-kubeconfig --region us-east-1 --name cloud
+Added new context arn:aws:eks:us-east-1:087843402235:cluster/cloud to /root/.kube/config
+[root@ip-172-31-20-222 ~]# kubectl get nodes
+NAME                           STATUS   ROLES    AGE     VERSION
+ip-172-31-74-99.ec2.internal   Ready    <none>   6m40s   v1.34.2-eks-ecaa3a6
+ip-172-31-8-15.ec2.internal    Ready    <none>   6m37s   v1.34.2-eks-ecaa3a6
+[root@ip-172-31-20-222 ~]# vi deploy.yml
+[root@ip-172-31-20-222 ~]# kubectl apply -f deploy.yml
+deployment.apps/nginx-deployment created
+[root@ip-172-31-20-222 ~]# kubectl get pods
+NAME                                READY   STATUS    RESTARTS   AGE
+nginx-deployment-5886cd9bfd-2qxl6   1/1     Running   0          15s
+nginx-deployment-5886cd9bfd-2xd86   1/1     Running   0          15s
+nginx-deployment-5886cd9bfd-4sdms   1/1     Running   0          15s
+nginx-deployment-5886cd9bfd-nfxf9   1/1     Running   0          15s
+nginx-deployment-5886cd9bfd-tmdxj   1/1     Running   0          15s
+nginx-deployment-5886cd9bfd-x9z2g   1/1     Running   0          15s
+[root@ip-172-31-20-222 ~]# kubectl get pods -o wide
+NAME                                READY   STATUS    RESTARTS   AGE   IP              NODE                           NOMINATED NODE   READINESS GATES
+nginx-deployment-5886cd9bfd-2qxl6   1/1     Running   0          59s   172.31.78.91    ip-172-31-74-99.ec2.internal   <none>           <none>
+nginx-deployment-5886cd9bfd-2xd86   1/1     Running   0          59s   172.31.0.89     ip-172-31-8-15.ec2.internal    <none>           <none>
+nginx-deployment-5886cd9bfd-4sdms   1/1     Running   0          59s   172.31.75.8     ip-172-31-74-99.ec2.internal   <none>           <none>
+nginx-deployment-5886cd9bfd-nfxf9   1/1     Running   0          59s   172.31.9.36     ip-172-31-8-15.ec2.internal    <none>           <none>
+nginx-deployment-5886cd9bfd-tmdxj   1/1     Running   0          59s   172.31.64.177   ip-172-31-74-99.ec2.internal   <none>           <none>
+nginx-deployment-5886cd9bfd-x9z2g   1/1     Running   0          59s   172.31.4.251    ip-172-31-8-15.ec2.internal    <none>           <none>
+[root@ip-172-31-20-222 ~]# kubectl get nodes
+NAME                           STATUS   ROLES    AGE     VERSION
+ip-172-31-74-99.ec2.internal   Ready    <none>   9m42s   v1.34.2-eks-ecaa3a6
+ip-172-31-8-15.ec2.internal    Ready    <none>   9m39s   v1.34.2-eks-ecaa3a6
+[root@ip-172-31-20-222 ~]# kubectl delete -f deploy.yml
+deployment.apps "nginx-deployment" deleted from default namespace
+[root@ip-172-31-20-222 ~]# kubectl get pods
+No resources found in default namespace.
+[root@ip-172-31-20-222 ~]# vi deploy.yml
+[root@ip-172-31-20-222 ~]# kubectl apply -f deploy.yml
+deployment.apps/nginx-deployment created
+[root@ip-172-31-20-222 ~]# kubectl get pods
+NAME                               READY   STATUS    RESTARTS   AGE
+nginx-deployment-77457885b-56bl6   1/1     Running   0          11s
+nginx-deployment-77457885b-8qngk   1/1     Running   0          11s
+nginx-deployment-77457885b-ns4tx   1/1     Running   0          11s
+[root@ip-172-31-20-222 ~]# kubectl get pods -o wide
+NAME                               READY   STATUS    RESTARTS   AGE   IP              NODE                           NOMINATED NODE   READINESS GATES
+nginx-deployment-77457885b-56bl6   1/1     Running   0          29s   172.31.72.166   ip-172-31-74-99.ec2.internal   <none>           <none>
+nginx-deployment-77457885b-8qngk   1/1     Running   0          29s   172.31.75.240   ip-172-31-74-99.ec2.internal   <none>           <none>
+nginx-deployment-77457885b-ns4tx   1/1     Running   0          29s   172.31.5.11     ip-172-31-8-15.ec2.internal    <none>           <none>
+[root@ip-172-31-20-222 ~]# kubectl get nodes
+NAME                           STATUS   ROLES    AGE   VERSION
+ip-172-31-74-99.ec2.internal   Ready    <none>   16m   v1.34.2-eks-ecaa3a6
+ip-172-31-8-15.ec2.internal    Ready    <none>   16m   v1.34.2-eks-ecaa3a6
+[root@ip-172-31-20-222 ~]# kubectl taint nodes ip-172-31-74-99.ec2.internal app=blue:NoSchedule 
+node/ip-172-31-74-99.ec2.internal tainted
+[root@ip-172-31-20-222 ~]# kubectl get pods -o wide
+NAME                               READY   STATUS    RESTARTS   AGE     IP              NODE                           NOMINATED NODE   READINESS GATES
+nginx-deployment-77457885b-56bl6   1/1     Running   0          5m49s   172.31.72.166   ip-172-31-74-99.ec2.internal   <none>           <none>
+nginx-deployment-77457885b-8qngk   1/1     Running   0          5m49s   172.31.75.240   ip-172-31-74-99.ec2.internal   <none>           <none>
+nginx-deployment-77457885b-ns4tx   1/1     Running   0          5m49s   172.31.5.11     ip-172-31-8-15.ec2.internal    <none>           <none>
+
+
+
+[root@ip-172-31-20-222 ~]# vi deploy.yml
+[root@ip-172-31-20-222 ~]# kubectl apply -f deploy.yml
+deployment.apps/nginx-deployment configured
+[root@ip-172-31-20-222 ~]# kubectl get pods -o wide
+NAME                               READY   STATUS    RESTARTS   AGE   IP              NODE                           NOMINATED NODE   READINESS GATES
+nginx-deployment-77457885b-28z6r   1/1     Running   0          6s    172.31.9.36     ip-172-31-8-15.ec2.internal    <none>           <none>
+nginx-deployment-77457885b-56bl6   1/1     Running   0          10m   172.31.72.166   ip-172-31-74-99.ec2.internal   <none>           <none>
+nginx-deployment-77457885b-8qngk   1/1     Running   0          10m   172.31.75.240   ip-172-31-74-99.ec2.internal   <none>           <none>
+nginx-deployment-77457885b-ns4tx   1/1     Running   0          10m   172.31.5.11     ip-172-31-8-15.ec2.internal    <none>           <none>
+nginx-deployment-77457885b-vgr4r   1/1     Running   0          6s    172.31.4.251    ip-172-31-8-15.ec2.internal    <none>           <none>
+[root@ip-172-31-20-222 ~]# vi deploy.yml
+[root@ip-172-31-20-222 ~]# kubectl apply -f deploy.yml
+deployment.apps/nginx-deployment configured
+[root@ip-172-31-20-222 ~]# kubectl get pods -o wide
+NAME                               READY   STATUS    RESTARTS   AGE   IP              NODE                           NOMINATED NODE   READINESS GATES
+nginx-deployment-77457885b-28z6r   1/1     Running   0          91s   172.31.9.36     ip-172-31-8-15.ec2.internal    <none>           <none>
+nginx-deployment-77457885b-4ndts   1/1     Running   0          6s    172.31.11.54    ip-172-31-8-15.ec2.internal    <none>           <none>
+nginx-deployment-77457885b-56bl6   1/1     Running   0          12m   172.31.72.166   ip-172-31-74-99.ec2.internal   <none>           <none>
+nginx-deployment-77457885b-7k4q5   1/1     Running   0          6s    172.31.14.177   ip-172-31-8-15.ec2.internal    <none>           <none>
+nginx-deployment-77457885b-7ktr9   1/1     Running   0          6s    172.31.75.8     ip-172-31-74-99.ec2.internal   <none>           <none>
+nginx-deployment-77457885b-8qngk   1/1     Running   0          12m   172.31.75.240   ip-172-31-74-99.ec2.internal   <none>           <none>
+nginx-deployment-77457885b-j8q7x   1/1     Running   0          6s    172.31.77.112   ip-172-31-74-99.ec2.internal   <none>           <none>
+nginx-deployment-77457885b-l5vbk   1/1     Running   0          6s    172.31.69.174   ip-172-31-74-99.ec2.internal   <none>           <none>
+nginx-deployment-77457885b-ns4tx   1/1     Running   0          12m   172.31.5.11     ip-172-31-8-15.ec2.internal    <none>           <none>
+nginx-deployment-77457885b-vgr4r   1/1     Running   0          91s   172.31.4.251    ip-172-31-8-15.ec2.internal    <none>           <none>
+[root@ip-172-31-20-222 ~]# kubectl describe node ip-172-31-74-99.ec2.internal | grep -i taint -A2
+Taints:             app=blue:NoSchedule
+Unschedulable:      false
+Lease:
+[root@ip-172-31-20-222 ~]# kubectl describe node ip-172-31-74-99.ec2.internal | grep taient
+[root@ip-172-31-20-222 ~]# kubectl describe node ip-172-31-74-99.ec2.internal | grep taint
+[root@ip-172-31-20-222 ~]# kubectl describe node ip-172-31-74-99.ec2.internal | grep -i taint -A2
+Taints:             app=blue:NoSchedule
+Unschedulable:      false
+Lease:
+[root@ip-172-31-20-222 ~]# kubectl taint nodes ip-172-31-74-99.ec2.internal app=blue:NoSchedule- 
+node/ip-172-31-74-99.ec2.internal untainted
+[root@ip-172-31-20-222 ~]# kubectl describe node ip-172-31-74-99.ec2.internal | grep -i taint -A2
+Taints:             <none>
+Unschedulable:      false
+Lease:
+[root@ip-172-31-20-222 ~]# kubectl get pods -o wide
+NAME                               READY   STATUS    RESTARTS   AGE     IP              NODE                           NOMINATED NODE   READINESS GATES
+nginx-deployment-77457885b-28z6r   1/1     Running   0          8m27s   172.31.9.36     ip-172-31-8-15.ec2.internal    <none>           <none>
+nginx-deployment-77457885b-4ndts   1/1     Running   0          7m2s    172.31.11.54    ip-172-31-8-15.ec2.internal    <none>           <none>
+nginx-deployment-77457885b-56bl6   1/1     Running   0          19m     172.31.72.166   ip-172-31-74-99.ec2.internal   <none>           <none>
+nginx-deployment-77457885b-7k4q5   1/1     Running   0          7m2s    172.31.14.177   ip-172-31-8-15.ec2.internal    <none>           <none>
+nginx-deployment-77457885b-7ktr9   1/1     Running   0          7m2s    172.31.75.8     ip-172-31-74-99.ec2.internal   <none>           <none>
+nginx-deployment-77457885b-8qngk   1/1     Running   0          19m     172.31.75.240   ip-172-31-74-99.ec2.internal   <none>           <none>
+nginx-deployment-77457885b-j8q7x   1/1     Running   0          7m2s    172.31.77.112   ip-172-31-74-99.ec2.internal   <none>           <none>
+nginx-deployment-77457885b-l5vbk   1/1     Running   0          7m2s    172.31.69.174   ip-172-31-74-99.ec2.internal   <none>           <none>
+nginx-deployment-77457885b-ns4tx   1/1     Running   0          19m     172.31.5.11     ip-172-31-8-15.ec2.internal    <none>           <none>
+nginx-deployment-77457885b-vgr4r   1/1     Running   0          8m27s   172.31.4.251    ip-172-31-8-15.ec2.internal    <none>           <none>
+[root@ip-172-31-20-222 ~]# kubectl delete -f deploy.yml
+deployment.apps "nginx-deployment" deleted from default namespace
+[root@ip-172-31-20-222 ~]# kubectl get pods -o wide
+No resources found in default namespace.
+
+
+
+[root@ip-172-31-20-222 ~]# vi deploy.yml
+[root@ip-172-31-20-222 ~]# kubectl apply -f deploy.yml
+deployment.apps/nginx-deployment created
+[root@ip-172-31-20-222 ~]# kubectl get pods -o wide
+NAME                                READY   STATUS    RESTARTS   AGE   IP              NODE                           NOMINATED NODE   READINESS GATES
+nginx-deployment-5766d7696b-8fz9g   1/1     Running   0          6s    172.31.69.174   ip-172-31-74-99.ec2.internal   <none>           <none>
+nginx-deployment-5766d7696b-b6dbw   1/1     Running   0          6s    172.31.11.20    ip-172-31-8-15.ec2.internal    <none>           <none>
+nginx-deployment-5766d7696b-f6h7h   1/1     Running   0          6s    172.31.72.166   ip-172-31-74-99.ec2.internal   <none>           <none>
+nginx-deployment-5766d7696b-g6h6q   1/1     Running   0          6s    172.31.77.112   ip-172-31-74-99.ec2.internal   <none>           <none>
+nginx-deployment-5766d7696b-gkj9n   1/1     Running   0          6s    172.31.7.241    ip-172-31-8-15.ec2.internal    <none>           <none>
+nginx-deployment-5766d7696b-hqb4b   1/1     Running   0          6s    172.31.64.201   ip-172-31-74-99.ec2.internal   <none>           <none>
+nginx-deployment-5766d7696b-htlm8   1/1     Running   0          6s    172.31.0.89     ip-172-31-8-15.ec2.internal    <none>           <none>
+nginx-deployment-5766d7696b-ltj6l   1/1     Running   0          6s    172.31.4.251    ip-172-31-8-15.ec2.internal    <none>           <none>
+nginx-deployment-5766d7696b-pp6pp   1/1     Running   0          6s    172.31.73.102   ip-172-31-74-99.ec2.internal   <none>           <none>
+nginx-deployment-5766d7696b-v5r8k   1/1     Running   0          6s    172.31.9.36     ip-172-31-8-15.ec2.internal    <none>           <none>
+[root@ip-172-31-20-222 ~]# kubectl delete -f deploy.yml
+deployment.apps "nginx-deployment" deleted from default namespace
+[root@ip-172-31-20-222 ~]# vi deploy.yml
+[root@ip-172-31-20-222 ~]# kubectl apply -f deploy.yml
+deployment.apps/nginx-deployment created
+[root@ip-172-31-20-222 ~]# kubectl get pods -o wide
+NAME                                READY   STATUS    RESTARTS   AGE   IP              NODE                           NOMINATED NODE   READINESS GATES
+nginx-deployment-5766d7696b-9gqrh   1/1     Running   0          9s    172.31.77.112   ip-172-31-74-99.ec2.internal   <none>           <none>
+nginx-deployment-5766d7696b-lcm55   1/1     Running   0          9s    172.31.75.8     ip-172-31-74-99.ec2.internal   <none>           <none>
+nginx-deployment-5766d7696b-m69c6   1/1     Running   0          9s    172.31.4.251    ip-172-31-8-15.ec2.internal    <none>           <none>
+nginx-deployment-5766d7696b-tj8gf   1/1     Running   0          9s    172.31.72.166   ip-172-31-74-99.ec2.internal   <none>           <none>
+nginx-deployment-5766d7696b-tzn6l   1/1     Running   0          9s    172.31.14.177   ip-172-31-8-15.ec2.internal    <none>           <none>
+[root@ip-172-31-20-222 ~]# kubectl taint node ip-172-31-74-99.ec2.internal app=blue:NoExecute 
+node/ip-172-31-74-99.ec2.internal tainted
+[root@ip-172-31-20-222 ~]# kubectl get pods -o wide
+NAME                                READY   STATUS    RESTARTS   AGE    IP              NODE                           NOMINATED NODE   READINESS GATES
+nginx-deployment-5766d7696b-9gqrh   1/1     Running   0          114s   172.31.77.112   ip-172-31-74-99.ec2.internal   <none>           <none>
+nginx-deployment-5766d7696b-lcm55   1/1     Running   0          114s   172.31.75.8     ip-172-31-74-99.ec2.internal   <none>           <none>
+nginx-deployment-5766d7696b-m69c6   1/1     Running   0          114s   172.31.4.251    ip-172-31-8-15.ec2.internal    <none>           <none>
+nginx-deployment-5766d7696b-tj8gf   1/1     Running   0          114s   172.31.72.166   ip-172-31-74-99.ec2.internal   <none>           <none>
+nginx-deployment-5766d7696b-tzn6l   1/1     Running   0          114s   172.31.14.177   ip-172-31-8-15.ec2.internal    <none>           <none>
+[root@ip-172-31-20-222 ~]# kubectl describe pod nginx-deployment-5766d7696b-9gqrh | grep -i tolerations -A5
+Tolerations:                 app=blue:NoExecute
+                             node.kubernetes.io/not-ready:NoExecute op=Exists for 300s
+                             node.kubernetes.io/unreachable:NoExecute op=Exists for 300s
+Events:
+  Type    Reason     Age    From               Message
+  ----    ------     ----   ----               -------
+
+
+
+
+[root@ip-172-31-20-222 ~]# vi deploy.yml
+[root@ip-172-31-20-222 ~]# kubectl apply -f deploy.yml
+deployment.apps/nginx-deployment configured
+[root@ip-172-31-20-222 ~]# kubectl get pods -o wide
+NAME                               READY   STATUS    RESTARTS   AGE   IP              NODE                          NOMINATED NODE   READINESS GATES
+nginx-deployment-77457885b-hv4vx   1/1     Running   0          6s    172.31.11.54    ip-172-31-8-15.ec2.internal   <none>           <none>
+nginx-deployment-77457885b-kg7m2   1/1     Running   0          4s    172.31.11.190   ip-172-31-8-15.ec2.internal   <none>           <none>
+nginx-deployment-77457885b-qdp75   1/1     Running   0          6s    172.31.11.20    ip-172-31-8-15.ec2.internal   <none>           <none>
+nginx-deployment-77457885b-tmdgz   1/1     Running   0          6s    172.31.3.136    ip-172-31-8-15.ec2.internal   <none>           <none>
+nginx-deployment-77457885b-x6jw2   1/1     Running   0          5s    172.31.10.119   ip-172-31-8-15.ec2.internal   <none>           <none>
+[root@ip-172-31-20-222 ~]# kubectl describe pod nginx-deployment-5766d7696b-9gqrh | grep -i tolerations -A5
+Error from server (NotFound): pods "nginx-deployment-5766d7696b-9gqrh" not found
+[root@ip-172-31-20-222 ~]# kubectl taint node ip-172-31-74-99.ec2.internal app=blue:NoExecute 
+error: node ip-172-31-74-99.ec2.internal already has app taint(s) with same effect(s) and --overwrite is false
+[root@ip-172-31-20-222 ~]# kubectl get pods
+NAME                               READY   STATUS    RESTARTS   AGE
+nginx-deployment-77457885b-hv4vx   1/1     Running   0          2m14s
+nginx-deployment-77457885b-kg7m2   1/1     Running   0          2m12s
+nginx-deployment-77457885b-qdp75   1/1     Running   0          2m14s
+nginx-deployment-77457885b-tmdgz   1/1     Running   0          2m14s
+nginx-deployment-77457885b-x6jw2   1/1     Running   0          2m13s
+[root@ip-172-31-20-222 ~]# kubectl taint node ip-172-31-74-99.ec2.internal app=blue:NoExecute- 
+node/ip-172-31-74-99.ec2.internal untainted
+[root@ip-172-31-20-222 ~]# kubectl get pods -o wide
+NAME                               READY   STATUS    RESTARTS   AGE     IP              NODE                          NOMINATED NODE   READINESS GATES
+nginx-deployment-77457885b-hv4vx   1/1     Running   0          2m54s   172.31.11.54    ip-172-31-8-15.ec2.internal   <none>           <none>
+nginx-deployment-77457885b-kg7m2   1/1     Running   0          2m52s   172.31.11.190   ip-172-31-8-15.ec2.internal   <none>           <none>
+nginx-deployment-77457885b-qdp75   1/1     Running   0          2m54s   172.31.11.20    ip-172-31-8-15.ec2.internal   <none>           <none>
+nginx-deployment-77457885b-tmdgz   1/1     Running   0          2m54s   172.31.3.136    ip-172-31-8-15.ec2.internal   <none>           <none>
+nginx-deployment-77457885b-x6jw2   1/1     Running   0          2m53s   172.31.10.119   ip-172-31-8-15.ec2.internal   <none>           <none>
+[root@ip-172-31-20-222 ~]# kubectl describe pod nginx-deployment-5766d7696b-9gqrh | grep -i tolerations -A5
+Error from server (NotFound): pods "nginx-deployment-5766d7696b-9gqrh" not found
+[root@ip-172-31-20-222 ~]# kubectl delete -f deploy.yml
+deployment.apps "nginx-deployment" deleted from default namespace
+[root@ip-172-31-20-222 ~]# kubectl get pods
+No resources found in default namespace.
+[root@ip-172-31-20-222 ~]# vi deploy.yml
+[root@ip-172-31-20-222 ~]# kubectl apply -f deploy.yml
+deployment.apps/nginx-deployment created
+[root@ip-172-31-20-222 ~]# kubectl get pods
+NAME                               READY   STATUS    RESTARTS   AGE
+nginx-deployment-77457885b-48cl9   1/1     Running   0          6s
+nginx-deployment-77457885b-748ws   1/1     Running   0          6s
+nginx-deployment-77457885b-8nbzr   1/1     Running   0          6s
+nginx-deployment-77457885b-8vxdh   1/1     Running   0          6s
+nginx-deployment-77457885b-qmgmg   1/1     Running   0          5s
+[root@ip-172-31-20-222 ~]# kubectl get pods -o wide
+NAME                               READY   STATUS    RESTARTS   AGE   IP              NODE                           NOMINATED NODE   READINESS GATES
+nginx-deployment-77457885b-48cl9   1/1     Running   0          16s   172.31.11.20    ip-172-31-8-15.ec2.internal    <none>           <none>
+nginx-deployment-77457885b-748ws   1/1     Running   0          16s   172.31.14.177   ip-172-31-8-15.ec2.internal    <none>           <none>
+nginx-deployment-77457885b-8nbzr   1/1     Running   0          16s   172.31.71.110   ip-172-31-74-99.ec2.internal   <none>           <none>
+nginx-deployment-77457885b-8vxdh   1/1     Running   0          16s   172.31.72.166   ip-172-31-74-99.ec2.internal   <none>           <none>
+nginx-deployment-77457885b-qmgmg   1/1     Running   0          15s   172.31.77.112   ip-172-31-74-99.ec2.internal   <none>           <none>
+
+
+
+[root@ip-172-31-20-222 ~]# vi deploy.yml
+[root@ip-172-31-20-222 ~]# kubectl apply -f deploy.yml
+deployment.apps/nginx-deployment configured
+[root@ip-172-31-20-222 ~]# kubectl get pods -o wide
+NAME                                READY   STATUS    RESTARTS   AGE   IP              NODE                           NOMINATED NODE   READINESS GATES
+nginx-deployment-5766d7696b-9fkdx   1/1     Running   0          7s    172.31.69.174   ip-172-31-74-99.ec2.internal   <none>           <none>
+nginx-deployment-5766d7696b-fzxj6   1/1     Running   0          6s    172.31.11.54    ip-172-31-8-15.ec2.internal    <none>           <none>
+nginx-deployment-5766d7696b-g8zwr   1/1     Running   0          6s    172.31.78.91    ip-172-31-74-99.ec2.internal   <none>           <none>
+nginx-deployment-5766d7696b-jnr74   1/1     Running   0          7s    172.31.79.85    ip-172-31-74-99.ec2.internal   <none>           <none>
+nginx-deployment-5766d7696b-x5s2x   1/1     Running   0          7s    172.31.4.251    ip-172-31-8-15.ec2.internal    <none>           <none>
+[root@ip-172-31-20-222 ~]# kubectl taint node ip-172-31-74-99.ec2.internal app=blue:NoExecute 
+node/ip-172-31-74-99.ec2.internal tainted
+[root@ip-172-31-20-222 ~]# kubectl describe pod nginx-deployment-5766d7696b-9gqrh | grep -i tolerations -A5
+Error from server (NotFound): pods "nginx-deployment-5766d7696b-9gqrh" not found
+[root@ip-172-31-20-222 ~]# kubectl describe pod nginx-deployment-5766d7696b-9fkdx | grep -i tolerations -A5
+Tolerations:                 app=blue:NoExecute
+                             node.kubernetes.io/not-ready:NoExecute op=Exists for 300s
+                             node.kubernetes.io/unreachable:NoExecute op=Exists for 300s
+Events:
+  Type    Reason     Age   From               Message
+  ----    ------     ----  ----               -------
+[root@ip-172-31-20-222 ~]# kubectl describe nodes ip-172-31-74-99.us-east-1.compute.internall | grep Taints
+Error from server (NotFound): nodes "ip-172-31-74-99.us-east-1.compute.internall" not found
+[root@ip-172-31-20-222 ~]# kubectl describe node ip-172-31-74-99.ec2.internal | grep -i taint -A2
+Taints:             app=blue:NoExecute
+Unschedulable:      false
+Lease:
+[root@ip-172-31-20-222 ~]# kubectl taint node ip-172-31-74-99.ec2.internal app=blue:NoExecute- 
+node/ip-172-31-74-99.ec2.internal untainted
+[root@ip-172-31-20-222 ~]# kubectl apply -f deploy.yml
+deployment.apps/nginx-deployment unchanged
+[root@ip-172-31-20-222 ~]# kubectl get pods -o wide
+NAME                                READY   STATUS    RESTARTS   AGE     IP              NODE                           NOMINATED NODE   READINESS GATES
+nginx-deployment-5766d7696b-9fkdx   1/1     Running   0          4m34s   172.31.69.174   ip-172-31-74-99.ec2.internal   <none>           <none>
+nginx-deployment-5766d7696b-fzxj6   1/1     Running   0          4m33s   172.31.11.54    ip-172-31-8-15.ec2.internal    <none>           <none>
+nginx-deployment-5766d7696b-g8zwr   1/1     Running   0          4m33s   172.31.78.91    ip-172-31-74-99.ec2.internal   <none>           <none>
+nginx-deployment-5766d7696b-jnr74   1/1     Running   0          4m34s   172.31.79.85    ip-172-31-74-99.ec2.internal   <none>           <none>
+nginx-deployment-5766d7696b-x5s2x   1/1     Running   0          4m34s   172.31.4.251    ip-172-31-8-15.ec2.internal    <none>           <none>
+[root@ip-172-31-20-222 ~]# kubectl get nodes -o wide
+kubectl describe node ip-172-31-74-99.ec2.internal | grep -i taint -A2
+NAME                           STATUS   ROLES    AGE   VERSION               INTERNAL-IP    EXTERNAL-IP      OS-IMAGE                       KERNEL-VERSION                   CONTAINER-RUNTIME
+ip-172-31-74-99.ec2.internal   Ready    <none>   56m   v1.34.2-eks-ecaa3a6   172.31.74.99   3.238.196.35     Amazon Linux 2023.9.20251208   6.12.58-82.121.amzn2023.x86_64   containerd://2.1.5
+ip-172-31-8-15.ec2.internal    Ready    <none>   56m   v1.34.2-eks-ecaa3a6   172.31.8.15    35.172.232.201   Amazon Linux 2023.9.20251208   6.12.58-82.121.amzn2023.x86_64   containerd://2.1.5
+Taints:             <none>
+Unschedulable:      false
+Lease:
+[root@ip-172-31-20-222 ~]# kubectl get pods -o wide
+NAME                                READY   STATUS    RESTARTS   AGE     IP              NODE                           NOMINATED NODE   READINESS GATES
+nginx-deployment-5766d7696b-9fkdx   1/1     Running   0          6m54s   172.31.69.174   ip-172-31-74-99.ec2.internal   <none>           <none>
+nginx-deployment-5766d7696b-fzxj6   1/1     Running   0          6m53s   172.31.11.54    ip-172-31-8-15.ec2.internal    <none>           <none>
+nginx-deployment-5766d7696b-g8zwr   1/1     Running   0          6m53s   172.31.78.91    ip-172-31-74-99.ec2.internal   <none>           <none>
+nginx-deployment-5766d7696b-jnr74   1/1     Running   0          6m54s   172.31.79.85    ip-172-31-74-99.ec2.internal   <none>           <none>
+nginx-deployment-5766d7696b-x5s2x   1/1     Running   0          6m54s   172.31.4.251    ip-172-31-8-15.ec2.internal    <none>           <none>
+[root@ip-172-31-20-222 ~]# vi deploy.yml
+[root@ip-172-31-20-222 ~]# kubectl apply -f deploy.yml
+deployment.apps/nginx-deployment configured
+[root@ip-172-31-20-222 ~]# kubectl get pods -o wide
+NAME                               READY   STATUS    RESTARTS   AGE   IP              NODE                           NOMINATED NODE   READINESS GATES
+nginx-deployment-77457885b-42kxz   1/1     Running   0          8s    172.31.73.102   ip-172-31-74-99.ec2.internal   <none>           <none>
+nginx-deployment-77457885b-cb65z   1/1     Running   0          10s   172.31.14.177   ip-172-31-8-15.ec2.internal    <none>           <none>
+nginx-deployment-77457885b-r28p2   1/1     Running   0          9s    172.31.11.20    ip-172-31-8-15.ec2.internal    <none>           <none>
+nginx-deployment-77457885b-sgsc2   1/1     Running   0          10s   172.31.69.62    ip-172-31-74-99.ec2.internal   <none>           <none>
+nginx-deployment-77457885b-xnm56   1/1     Running   0          9s    172.31.71.110   ip-172-31-74-99.ec2.internal   <none>           <none>
+[root@ip-172-31-20-222 ~]# kubectl describe pod nginx-deployment-5766d7696b-9fkdx | grep -i tolerations -A5
+Error from server (NotFound): pods "nginx-deployment-5766d7696b-9fkdx" not found
+[root@ip-172-31-20-222 ~]# kubectl taint node ip-172-31-74-99.ec2.internal app=blue:NoSchedule
+node/ip-172-31-74-99.ec2.internal tainted
+[root@ip-172-31-20-222 ~]# kubectl get pods -o wide
+NAME                               READY   STATUS    RESTARTS   AGE   IP              NODE                           NOMINATED NODE   READINESS GATES
+nginx-deployment-77457885b-42kxz   1/1     Running   0          70s   172.31.73.102   ip-172-31-74-99.ec2.internal   <none>           <none>
+nginx-deployment-77457885b-cb65z   1/1     Running   0          72s   172.31.14.177   ip-172-31-8-15.ec2.internal    <none>           <none>
+nginx-deployment-77457885b-r28p2   1/1     Running   0          71s   172.31.11.20    ip-172-31-8-15.ec2.internal    <none>           <none>
+nginx-deployment-77457885b-sgsc2   1/1     Running   0          72s   172.31.69.62    ip-172-31-74-99.ec2.internal   <none>           <none>
+nginx-deployment-77457885b-xnm56   1/1     Running   0          71s   172.31.71.110   ip-172-31-74-99.ec2.internal   <none>           <none>
+[root@ip-172-31-20-222 ~]# vi deploy.yml
+[root@ip-172-31-20-222 ~]# kubectl apply -f deploy.yml
+deployment.apps/nginx-deployment configured
+[root@ip-172-31-20-222 ~]# kubectl get pods -o wide
+NAME                                READY   STATUS         RESTARTS   AGE     IP              NODE                           NOMINATED NODE   READINESS GATES
+nginx-deployment-64c54b7d6b-p2jz7   0/1     ErrImagePull   0          6s      172.31.4.251    ip-172-31-8-15.ec2.internal    <none>           <none>
+nginx-deployment-64c54b7d6b-sqrh8   0/1     ErrImagePull   0          6s      172.31.64.177   ip-172-31-74-99.ec2.internal   <none>           <none>
+nginx-deployment-64c54b7d6b-wsbgm   0/1     ErrImagePull   0          6s      172.31.77.112   ip-172-31-74-99.ec2.internal   <none>           <none>
+nginx-deployment-77457885b-42kxz    1/1     Running        0          3m18s   172.31.73.102   ip-172-31-74-99.ec2.internal   <none>           <none>
+nginx-deployment-77457885b-cb65z    1/1     Running        0          3m20s   172.31.14.177   ip-172-31-8-15.ec2.internal    <none>           <none>
+nginx-deployment-77457885b-r28p2    1/1     Running        0          3m19s   172.31.11.20    ip-172-31-8-15.ec2.internal    <none>           <none>
+nginx-deployment-77457885b-xnm56    1/1     Running        0          3m19s   172.31.71.110   ip-172-31-74-99.ec2.internal   <none>           <none>
+[root@ip-172-31-20-222 ~]# kubectl get pods
+NAME                                READY   STATUS             RESTARTS   AGE
+nginx-deployment-64c54b7d6b-p2jz7   0/1     ImagePullBackOff   0          19s
+nginx-deployment-64c54b7d6b-sqrh8   0/1     ImagePullBackOff   0          19s
+nginx-deployment-64c54b7d6b-wsbgm   0/1     ImagePullBackOff   0          19s
+nginx-deployment-77457885b-42kxz    1/1     Running            0          3m31s
+nginx-deployment-77457885b-cb65z    1/1     Running            0          3m33s
+nginx-deployment-77457885b-r28p2    1/1     Running            0          3m32s
+nginx-deployment-77457885b-xnm56    1/1     Running            0          3m32s
+[root@ip-172-31-20-222 ~]# kubectl delete -f deploy.yml
+deployment.apps "nginx-deployment" deleted from default namespace
+[root@ip-172-31-20-222 ~]# kubectl get pods
+No resources found in default namespace.
 
