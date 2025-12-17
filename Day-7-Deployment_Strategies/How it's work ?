@@ -1,10 +1,4 @@
-
-
-
-
-# Recreate Deployment Strategy
-
----
+-------- Recreate Deployment Strategy --------
 
 ## Step 5: Create Recreate Deployment YAML
 
@@ -129,11 +123,11 @@ eg. - <public IP>:<port no>
         172.91.75.3:32278
 
 result: nginx
----
 
-# Rolling Update Deployment Strategy
 
----
+---------  Rolling Update Deployment Strategy -----------
+
+
 
 ## Step 9: Create Rolling Deployment YAML
 
@@ -263,11 +257,11 @@ eg. - <public IP>:<port no>
         172.91.75.3:32278
 
 result: nginx / httpd 
----
 
-# Blue-Green Deployment Strategy
 
----
+-------  Blue-Green Deployment Strategy --------
+
+
 
 ## Step 13: Create Blue Deployment
 
@@ -444,11 +438,10 @@ After that copy the node server public IP with port no
 eg. - <public IP>:<port no>
         172.91.75.3:30752
 
----
 
-# Canary Deployment Strategy
 
----
+--------  Canary Deployment Strategy --------
+
 
 ## Step 18: Create Canary v1 Deployment
 
