@@ -319,37 +319,7 @@ No resources found in default namespace.
 
 -------- Taint & Toleration -------
 
-[ec2-user@ip-172-31-20-222 ~]$ sudo su -
-[root@ip-172-31-20-222 ~]# # Download kubectl binary:
-curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
 
-# Provide execution permission:
-chmod +x kubectl
-
-
-# Move kubectl to system path:
-mv kubectl /usr/local/bin/kubectl
-
-
-# Verify kubectl version:
-kubectl version --client
-  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-                                 Dload  Upload   Total   Spent    Left  Speed
-100   138  100   138    0     0   3443      0 --:--:-- --:--:-- --:--:--  3538
-100 57.7M  100 57.7M    0     0   331M      0 --:--:-- --:--:-- --:--:--  331M
-Client Version: v1.34.3
-Kustomize Version: v5.7.1
-[root@ip-172-31-20-222 ~]# aws configure
-AWS Access Key ID [None]: 
-AWS Secret Access Key [None]: 
-Default region name [None]: us-east-1
-Default output format [None]: json
-[root@ip-172-31-20-222 ~]# aws eks update-kubeconfig --region us-east-1 --name cloud
-Added new context arn:aws:eks:us-east-1:087843402235:cluster/cloud to /root/.kube/config
-[root@ip-172-31-20-222 ~]# kubectl get nodes
-NAME                           STATUS   ROLES    AGE     VERSION
-ip-172-31-74-99.ec2.internal   Ready    <none>   6m40s   v1.34.2-eks-ecaa3a6
-ip-172-31-8-15.ec2.internal    Ready    <none>   6m37s   v1.34.2-eks-ecaa3a6
 [root@ip-172-31-20-222 ~]# vi deploy.yml
 [root@ip-172-31-20-222 ~]# kubectl apply -f deploy.yml
 deployment.apps/nginx-deployment created
