@@ -142,3 +142,101 @@ External Clients (Browser, API, CI/CD)
         |
    Control Plane (etcd, kube-apiserver, scheduler, controller-manager)
 ```
+
+
+
+---
+
+# 📘 Kubernetes on AWS EKS – Setup Guide
+
+This README documents the steps to install `kubectl`, configure AWS CLI, connect to an EKS cluster, and verify nodes.
+
+---
+
+## 🔧 Step 1: Install `kubectl`
+
+Download the latest stable release:
+```bash
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+```
+
+Provide execution permission:
+```bash
+chmod +x kubectl
+```
+
+Move binary to system path:
+```bash
+mv kubectl /usr/local/bin/kubectl
+```
+
+Verify installation:
+```bash
+kubectl version --client
+```
+
+Output:
+```
+Client Version: v1.34.3
+Kustomize Version: v5.7.1
+```
+
+---
+
+## 🔧 Step 2: Configure AWS CLI
+
+Run:
+```bash
+aws configure
+```
+
+Provide credentials:
+```
+AWS Access Key ID [None]: <YOUR_AWS_ACCESS_KEY>
+AWS Secret Access Key [None]: <YOUR_AWS_SECRET_KEY>
+Default region name [None]: us-east-1
+Default output format [None]: json
+```
+
+---
+
+## 🔧 Step 3: Update kubeconfig for EKS
+
+Connect to your cluster:
+```bash
+aws eks update-kubeconfig --region us-east-1 --name cloud
+```
+
+Output:
+```
+Added new context arn:aws:eks:us-east-1:<ACCOUNT_ID>:cluster/cloud to /root/.kube/config
+```
+
+---
+
+## 🔧 Step 4: Verify Cluster Nodes
+
+Check nodes:
+```bash
+kubectl get nodes
+```
+
+Output:
+```
+NAME                           STATUS   ROLES    AGE     VERSION
+ip-172-31-74-99.ec2.internal   Ready    <none>   6m40s   v1.34.2-eks-ecaa3a6
+ip-172-31-8-15.ec2.internal    Ready    <none>   6m37s   v1.34.2-eks-ecaa3a6
+```
+
+---
+
+## ✅ Conclusion
+
+- Installed `kubectl` successfully.  
+- Configured AWS CLI with credentials.  
+- Connected to EKS cluster `cloud`.  
+- Verified worker nodes are **Ready**.  
+
+---
+
+
