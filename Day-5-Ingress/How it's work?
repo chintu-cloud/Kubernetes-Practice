@@ -1,0 +1,226 @@
+# 🌐 Kubernetes Ingress – Path-Based Routing (NGINX & HTTPD)
+
+## 🔹 Step 1: Deploy NGINX Ingress Controller
+
+📌 This installs the official **NGINX Ingress Controller** in the cluster.
+
+```bash
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.2.1/deploy/static/provider/cloud/deploy.yaml
+```
+
+### ✅ Output
+
+```
+namespace/ingress-nginx created
+deployment.apps/ingress-nginx-controller created
+service/ingress-nginx-controller created
+ingressclass.networking.k8s.io/nginx created
+```
+
+✔ Ingress Controller successfully deployed
+
+---
+
+## 🔹 Step 2: Create Deployment YAML Files
+
+Two applications are deployed:
+
+* **NGINX**
+* **HTTPD (Apache)**
+
+📍 Create YAML files:
+
+```bash
+vi path.yml
+vi path2.yml
+```
+
+Verify files:
+
+```bash
+ls
+```
+
+### ✅ Output
+
+```
+path.yml  path2.yml
+```
+
+---
+
+## 🔹 Step 3: Deploy Applications
+
+📌 Apply all YAML files in the directory.
+
+```bash
+kubectl apply -f .
+```
+
+### ✅ Output
+
+```
+deployment.apps/nginx created
+service/nginx created
+deployment.apps/httpd created
+service/httpd created
+```
+
+✔ Both applications deployed successfully
+
+---
+
+## 🔹 Step 4: Verify Pods
+
+```bash
+kubectl get pods
+```
+
+### ✅ Output
+
+```
+httpd-685d69465b-v9g8r   1/1   Running
+nginx-7ccccd94f7-69f4w  1/1   Running
+```
+
+✔ Pods are running
+
+---
+
+## 🔹 Step 5: Verify Services
+
+```bash
+kubectl get svc
+```
+
+### ✅ Output
+
+```
+nginx   ClusterIP   10.100.192.33   80
+httpd   ClusterIP   10.100.134.178  80
+```
+
+✔ Services created (internal only)
+
+---
+
+## 🔹 Step 6: Create Ingress Resource
+
+📌 This Ingress routes traffic based on URL path.
+
+```bash
+vi ingress.yml
+```
+
+Example configuration:
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: k8s-ingress
+spec:
+  ingressClassName: nginx
+  rules:
+  - http:
+      paths:
+      - path: /nginx
+        pathType: Prefix
+        backend:
+          service:
+            name: nginx
+            port:
+              number: 80
+      - path: /httpd
+        pathType: Prefix
+        backend:
+          service:
+            name: httpd
+            port:
+              number: 80
+```
+
+Apply ingress:
+
+```bash
+kubectl apply -f ingress.yml
+```
+
+### ✅ Output
+
+```
+ingress.networking.k8s.io/k8s-ingress created
+```
+
+---
+
+## 🔹 Step 7: Check Ingress Status
+
+```bash
+kubectl get ingress
+```
+
+Initially:
+
+```
+ADDRESS   <pending>
+```
+
+After few seconds:
+
+```bash
+kubectl get ingress
+```
+
+### ✅ Output
+
+```
+k8s-ingress   nginx   a13358746ad9348a6b107619ddacbd33.us-east-1.elb.amazonaws.com   80
+```
+
+✔ AWS Load Balancer created automatically 🎉
+
+---
+
+## 🔹 Step 8: Verify Pod Placement (Optional)
+
+```bash
+kubectl get pods -o wide
+```
+
+### ✅ Output
+
+```
+nginx   Running   172.31.xx.xx   ip-172-31-16-251
+httpd   Running   172.31.xx.xx   ip-172-31-16-251
+```
+
+---
+
+## 🌍 Step 9: Access Application in Browser
+
+📌 Copy the **Load Balancer DNS** from ingress output:
+
+```
+a13358746ad9348a6b107619ddacbd33-1827025222.us-east-1.elb.amazonaws.com
+```
+
+### 🔗 Open in Browser
+
+| URL                     | Result             |
+| ----------------------- | ------------------ |
+| `http://<LB-DNS>/nginx` | NGINX Default Page |
+| `http://<LB-DNS>/httpd` | Apache HTTPD Page  |
+
+🎯 **Path-based routing is working successfully**
+
+---
+
+## ✅ Final Outcome
+
+✔ One Load Balancer
+✔ Multiple Applications
+✔ Path-Based Routing
+✔ NGINX Ingress Controller
+✔ AWS EKS Integration
+
